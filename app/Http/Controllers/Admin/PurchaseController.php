@@ -59,7 +59,7 @@ class PurchaseController extends Controller
         $entities = Entity::active()->where('is_supplier', true)->get()->pluck('short_name', 'id');
 
         $methods = PaymentMethod::pluck('name', 'id');
-        $productVariants = ProductVariant::with('product')->get();
+        $productVariants = ProductVariant::with(['product', 'attributeValues'])->get();
 
         return view('admin.purchases.create', compact('entities', 'methods', 'productVariants'));
     }
@@ -115,7 +115,7 @@ class PurchaseController extends Controller
         $entities = Entity::active()->where('is_supplier', true)->get()->pluck('short_name', 'id');
 
         $methods = PaymentMethod::pluck('name', 'id');
-        $productVariants = ProductVariant::with('product')->get();
+        $productVariants = ProductVariant::with(['product', 'attributeValues'])->get();
 
         return view('admin.purchases.edit', compact('purchase', 'entities', 'methods', 'productVariants'));
     }

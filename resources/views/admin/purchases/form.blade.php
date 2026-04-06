@@ -107,9 +107,10 @@
                                     @foreach($productVariants as $variant)
                                         <option value="{{ $variant->id }}">
                                             {{ $variant->product->name }}
-                                            {{ $variant->option1 ? "- {$variant->option1}" : '' }}
-                                            {{ $variant->option2 ? "/ {$variant->option2}" : '' }} (SKU:
-                                            {{ $variant->sku }})
+                                            @if($variant->attributeValues->isNotEmpty())
+                                                ({{ $variant->attributeValues->pluck('value')->join(' / ') }})
+                                            @endif
+                                            - SKU: {{ $variant->sku }}
                                         </option>
                                     @endforeach
                                 </select>
