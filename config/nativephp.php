@@ -164,7 +164,6 @@ return [
      */
     'prebuild' => [
         // 'npm run build',
-        'php artisan optimize:clear',
     ],
 
     'postbuild' => [
