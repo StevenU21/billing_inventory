@@ -1,58 +1,42 @@
-@import '@fortawesome/fontawesome-free/css/all.min.css';
-@import '@fontsource/inter/400.css';
-@import '@fontsource/inter/500.css';
-@import '@fontsource/inter/600.css';
-@import '@fontsource/inter/700.css';
-@import '@fontsource/inter/800.css';
+@import "@fortawesome/fontawesome-free/css/all.min.css";
+@import "@fontsource/inter/400.css";
+@import "@fontsource/inter/500.css";
+@import "@fontsource/inter/600.css";
+@import "@fontsource/inter/700.css";
+@import "@fontsource/inter/800.css";
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-    input[type='text']:focus,
-    input[type='email']:focus,
-    input[type='url']:focus,
-    input[type='password']:focus,
-    input[type='number']:focus,
-    input[type='date']:focus,
-    input[type='datetime-local']:focus,
-    input[type='month']:focus,
-    input[type='search']:focus,
-    input[type='tel']:focus,
-    input[type='time']:focus,
-    input[type='week']:focus,
+    /* Override Tailwind Forms plugin default focus styles */
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="url"]:focus,
+    input[type="password"]:focus,
+    input[type="number"]:focus,
+    input[type="date"]:focus,
+    input[type="datetime-local"]:focus,
+    input[type="month"]:focus,
+    input[type="search"]:focus,
+    input[type="tel"]:focus,
+    input[type="time"]:focus,
+    input[type="week"]:focus,
     textarea:focus,
     select:focus {
-        --tw-ring-color: rgb(192 132 252) !important;
-        border-color: rgb(192 132 252) !important;
+        --tw-ring-color: rgb(192 132 252) !important; /* purple-400 */
+        border-color: rgb(192 132 252) !important; /* purple-400 */
     }
 }
 
 @keyframes swing {
-    0% {
-        transform: rotate(0deg);
-    }
-
-    10% {
-        transform: rotate(10deg);
-    }
-
-    30% {
-        transform: rotate(-10deg);
-    }
-
-    50% {
-        transform: rotate(5deg);
-    }
-
-    70% {
-        transform: rotate(-5deg);
-    }
-
-    100% {
-        transform: rotate(0deg);
-    }
+    0% { transform: rotate(0deg); }
+    10% { transform: rotate(10deg); }
+    30% { transform: rotate(-10deg); }
+    50% { transform: rotate(5deg); }
+    70% { transform: rotate(-5deg); }
+    100% { transform: rotate(0deg); }
 }
 
 .animate-swing {

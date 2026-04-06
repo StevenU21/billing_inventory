@@ -1,6 +1,5 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import forms from '@tailwindcss/forms';
-import flowbitePlugin from 'flowbite/plugin';
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -18,8 +17,8 @@ export default {
         extend: {
             fontFamily: {
                 sans: ['Inter', ...defaultTheme.fontFamily.sans],
-            },
-            colors: {
+            }, colors: {
+                // CORRECCIÓN: Estos son los grays EXACTOS de Windmill (Old CSS)
                 gray: {
                     50: '#f9fafb',
                     100: '#f4f5f7',
@@ -28,9 +27,9 @@ export default {
                     400: '#9e9e9e',
                     500: '#707275',
                     600: '#4c4f52',
-                    700: '#24262d',
-                    800: '#1a1c23',
-                    900: '#121317',
+                    700: '#24262d', // Este es el color de las tarjetas (Cards)
+                    800: '#1a1c23', // Este es el fondo principal en dark mode
+                    900: '#121317', // Este es el sidebar o fondos muy oscuros
                 },
                 purple: {
                     50: '#f3f0ff',
@@ -48,5 +47,8 @@ export default {
         },
     },
 
-    plugins: [forms, flowbitePlugin],
+    plugins: [
+        forms,
+        require('flowbite/plugin')
+    ],
 };
