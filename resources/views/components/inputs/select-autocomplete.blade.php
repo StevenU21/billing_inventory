@@ -7,19 +7,21 @@
     'suggestionsVar' => null, // Name of the AlpineJS variable containing suggestions (e.g., "availableAttributes")
     'suggestions' => [], // PHP array fallback
     'inputClass' => '',
+    'disabled' => false,
+    'readonly' => false,
 ])
 
 <div class="relative"
-     x-data="{ 
+     x-data="{
         open: false,
         get matches() {
             // Get source: either the JS variable name passed as string, or encoded PHP array
             let source = {{ $suggestionsVar ? $suggestionsVar : json_encode($suggestions) }};
             let currentVal = {{ $model }};
-            
+
             if (!currentVal) return source;
 
-            return source.filter(item => 
+            return source.filter(item =>
                 item.toLowerCase().includes(currentVal.toLowerCase())
             );
         },
@@ -35,25 +37,29 @@
             @if($required) <span class="text-red-500">*</span> @endif
         </label>
     @endif
-    
-    <input 
-        type="text" 
+
+    <input
+        type="text"
         name="{{ $name }}"
         x-model="{{ $model }}"
+        @unless($disabled || $readonly)
         @focus="open = true"
         @click.outside="open = false"
         @keydown.escape="open = false"
         {{-- Close if Tab is pressed to move to next field --}}
-        @keydown.tab="open = false" 
+        @keydown.tab="open = false"
+        @endunless
         placeholder="{{ $placeholder }}"
         class="block w-full text-sm text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-700/50 rounded-lg focus:outline-none focus:border-purple-400 focus:ring-1 focus:ring-purple-400 focus:ring-offset-0 h-[38px] placeholder-gray-400 dark:placeholder-gray-500 {{ $inputClass }}"
         {{ $required ? 'required' : '' }}
+        {{ $disabled ? 'disabled' : '' }}
+        {{ $readonly ? 'readonly' : '' }}
         autocomplete="off"
     >
 
     {{-- Dropdown Suggestions --}}
-    <div 
-        x-show="open && matches.length > 0" 
+    <div
+        x-show="open && matches.length > 0 && ! @js($disabled || $readonly)"
         x-transition:enter="transition ease-out duration-100"
         x-transition:enter-start="transform opacity-0 scale-95"
         x-transition:enter-end="transform opacity-100 scale-100"
@@ -65,8 +71,8 @@
     >
         <ul class="py-1 text-sm text-gray-700 dark:text-gray-200">
             <template x-for="item in matches" :key="item">
-                <li 
-                    @click="select(item)" 
+                <li
+                    @click="select(item)"
                     class="px-4 py-2 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20 hover:text-purple-600 dark:hover:text-purple-300 transition-colors"
                 >
                     {{-- Highlight matching part? Keeping simplistic for now --}}

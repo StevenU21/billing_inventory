@@ -15,22 +15,19 @@ readonly class ProductData
         public int $brandId,
         public int $taxId,
         public int $unitMeasureId,
-        public string $currency,
         public array $items,
         public ProductStatus $status,
-        public ?string $description,
-        public array $attributes,
-        public ?string $code,
-        public ?UploadedFile $image,
-        public ?int $id,
+        public ?string $description = null,
+        public array $attributes = [],
+        public ?string $code = null,
+        public ?UploadedFile $image = null,
+        public ?int $id = null,
     ) {}
 
     public static function fromRequest(array $validated): self
     {
-        $currency = $validated['currency'] ?? 'NIO';
-
         $items = array_map(
-            fn ($item) => ProductVariantData::fromArray($item, $currency),
+            fn ($item) => ProductVariantData::fromArray($item),
             $validated['variants'] ?? []
         );
 
@@ -39,7 +36,6 @@ readonly class ProductData
             brandId: (int) $validated['brand_id'],
             taxId: (int) $validated['tax_id'],
             unitMeasureId: (int) $validated['unit_measure_id'],
-            currency: $currency,
             items: $items,
             status: ProductStatus::tryFrom($validated['status'] ?? '') ?? ProductStatus::Draft,
             description: $validated['description'] ?? null,

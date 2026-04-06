@@ -75,7 +75,6 @@ class ProductRequest extends FormRequest
             'code' => ['nullable', 'string', 'max:50', Rule::unique('products')->ignore($productId)],
             'description' => ['nullable', 'string', 'max:255'],
             'image' => ['nullable', 'image', 'max:2048'],
-            'currency' => ['required', 'string', 'size:3', 'in:NIO,USD'],
 
             'brand_id' => ['required', 'integer', 'exists:brands,id'],
             'tax_id' => ['required', 'integer', 'exists:taxes,id'],
@@ -92,6 +91,7 @@ class ProductRequest extends FormRequest
 
             'variants.*.sku' => ['nullable', 'string', 'distinct', new UniqueVariantSku],
             'variants.*.barcode' => ['nullable', 'string', 'max:50'],
+            'variants.*.image' => ['nullable', 'image', 'max:2048'],
             'variants.*.price' => ['required', new ValidMoney(min: 0.01)],
             'variants.*.credit_price' => ['nullable', new ValidMoney(min: 0.01)],
             'variants.*.currency' => ['nullable', 'string', 'size:3', 'in:'.$currencies],

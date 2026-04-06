@@ -73,7 +73,7 @@ class ProductController extends Controller
     {
         $this->authorize('create', Product::class);
 
-        $data = ProductData::fromRequest($request->validated());
+        $data = ProductData::fromRequest($this->validatedProductPayload($request));
 
         $this->productService->createProduct($data);
 
@@ -89,7 +89,13 @@ class ProductController extends Controller
         $taxes = Tax::pluck('name', 'id');
         $brands = Brand::pluck('name', 'id');
 
-        $product->load('brand:id,name');
+        $product->load([
+            'brand:id,name',
+            'variants' => function ($query) {
+                $query->with(['attributeValues.attribute'])
+                    ->withCount(['purchaseDetails', 'saleDetails']);
+            },
+        ]);
         $availableAttributes = ProductAttribute::pluck('name');
 
         return view('admin.products.edit', compact('product', 'categories', 'units', 'taxes', 'brands', 'availableAttributes'));
@@ -99,10 +105,30 @@ class ProductController extends Controller
     {
         $this->authorize('update', $product);
 
-        $data = ProductData::fromRequest($request->validated());
+        $data = ProductData::fromRequest($this->validatedProductPayload($request));
         $this->productService->updateProduct($product, $data);
 
         return redirect()->route('products.index')->with('updated', 'Producto actualizado correctamente.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function validatedProductPayload(ProductRequest $request): array
+    {
+        $validated = $request->validated();
+        $variantFiles = $request->file('variants', []);
+
+        foreach ($validated['variants'] ?? [] as $index => &$variantData) {
+            $imageFile = $variantFiles[$index]['image'] ?? null;
+
+            if ($imageFile !== null) {
+                $variantData['image'] = $imageFile;
+            }
+        }
+        unset($variantData);
+
+        return $validated;
     }
 
     public function show(Product $product)

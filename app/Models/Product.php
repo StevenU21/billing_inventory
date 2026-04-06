@@ -3,17 +3,15 @@
 namespace App\Models;
 
 use App\Enums\ProductStatus;
+use App\Traits\HasFormattedTimestamps;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
-use App\Models\ProductVariant;
-
-use App\Traits\HasFormattedTimestamps;
 
 class Product extends Model
 {
-    use HasFactory, LogsActivity, HasFormattedTimestamps;
+    use HasFactory, HasFormattedTimestamps, LogsActivity;
 
     protected $fillable = [
         'name',
@@ -23,7 +21,7 @@ class Product extends Model
         'status',
         'brand_id',
         'tax_id',
-        'unit_measure_id'
+        'unit_measure_id',
     ];
 
     protected function casts(): array
@@ -95,7 +93,7 @@ class Product extends Model
 
     public function getHasRealImageAttribute(): bool
     {
-        return $this->image && !str_contains($this->image_url, 'image04.png');
+        return $this->image && ! str_contains($this->image_url, 'image04.png');
     }
 
     public function getInitialsAttribute(): string
@@ -151,7 +149,7 @@ class Product extends Model
             return [
                 'has_options' => false,
                 'total_count' => 0,
-                'attributes' => []
+                'attributes' => [],
             ];
         }
 
@@ -164,11 +162,11 @@ class Product extends Model
                 $attrName = $av->attribute->name;
                 $val = $av->value;
 
-                if (!isset($attributeMap[$attrName])) {
+                if (! isset($attributeMap[$attrName])) {
                     $attributeMap[$attrName] = [];
                 }
                 // Avoid duplicates
-                if (!in_array($val, $attributeMap[$attrName])) {
+                if (! in_array($val, $attributeMap[$attrName])) {
                     $attributeMap[$attrName][] = $val;
                 }
             }
@@ -181,14 +179,14 @@ class Product extends Model
 
             $attributesData[$name] = [
                 'badges' => $show,
-                'overflow' => $overflow
+                'overflow' => $overflow,
             ];
         }
 
         return [
-            'has_options' => !empty($attributesData),
+            'has_options' => ! empty($attributesData),
             'total_count' => $variants->count(),
-            'attributes' => $attributesData
+            'attributes' => $attributesData,
         ];
     }
 }

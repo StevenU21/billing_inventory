@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Contracts\SkuGeneratorInterface;
 use App\DTOs\ProductVariantData;
+use App\Exceptions\BusinessLogicException;
 use App\Models\Product;
 use App\Models\ProductVariant;
-use App\Exceptions\BusinessLogicException;
 use Illuminate\Support\Collection;
 
 class ProductVariantService
@@ -15,15 +15,18 @@ class ProductVariantService
         protected FileNativeService $fileService,
         protected SkuGeneratorInterface $skuGenerator,
         protected ProductAttributeService $attributeService
-    ) {
-    }
+    ) {}
 
     public function sync(Product $product, array $items): void
     {
-        $existingVariants = $product->variants()->with('attributeValues.attribute')->get();
+        $existingVariants = $product->variants()
+            ->with(['attributeValues.attribute'])
+            ->withCount(['purchaseDetails', 'saleDetails'])
+            ->get();
 
         $variantsBySignature = $existingVariants->mapWithKeys(function ($v) {
             $signature = $this->generateVariantSignatureFromModel($v);
+
             return [$signature => $v];
         });
 
@@ -61,6 +64,18 @@ class ProductVariantService
 
     protected function persistVariant(Product $product, ProductVariant $variant, ProductVariantData $itemData): void
     {
+        if ($variant->exists && $variant->has_commercial_movements) {
+            $currentSignature = $this->generateVariantSignatureFromModel($variant);
+            $requestedSignature = $this->generateVariantSignatureFromData($itemData->attributes);
+
+            if ($currentSignature !== $requestedSignature) {
+                throw new BusinessLogicException(
+                    'No se pueden modificar los atributos de una variante que ya tiene compras o ventas registradas.',
+                    'attributes'
+                );
+            }
+        }
+
         $finalSku = $itemData->sku ? strtoupper(trim($itemData->sku)) : null;
 
         if (empty($finalSku)) {
@@ -92,8 +107,10 @@ class ProductVariantService
 
         $variant->save();
 
-        // Sync Attributes
-        $this->attributeService->syncVariantAttributes($variant, $itemData->attributes);
+        // Sync attributes only when the variant is still editable.
+        if (! $variant->has_commercial_movements) {
+            $this->attributeService->syncVariantAttributes($variant, $itemData->attributes);
+        }
     }
 
     protected function generateVariantSignatureFromModel(ProductVariant $variant): string
@@ -102,12 +119,14 @@ class ProductVariantService
         foreach ($variant->attributeValues as $val) {
             $attrs[$val->attribute->name] = $val->value;
         }
+
         return $this->generateVariantSignatureFromData($attrs);
     }
 
     protected function generateVariantSignatureFromData(array $attributes): string
     {
         ksort($attributes);
+
         return http_build_query($attributes);
     }
 
@@ -134,6 +153,13 @@ class ProductVariantService
 
     public function delete(ProductVariant $variant): void
     {
+        if ($variant->has_commercial_movements) {
+            throw new BusinessLogicException(
+                "No se puede borrar la variante {$variant->sku} porque ya tiene compras o ventas registradas.",
+                'variant'
+            );
+        }
+
         if ($variant->inventories()->exists()) {
             if ($variant->inventories()->sum('stock') > 0) {
                 throw new BusinessLogicException("No se puede borrar variante con stock: {$variant->sku}");

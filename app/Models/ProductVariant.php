@@ -7,13 +7,14 @@ use App\Traits\HasFormattedTimestamps;
 use Brick\Math\RoundingMode;
 use Brick\Money\Money;
 use Elegantly\Money\MoneyCast;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
 
 /**
- * @property-read \Illuminate\Database\Eloquent\Collection|\App\Models\ProductAttributeValue[] $attributeValues
+ * @property-read Collection|ProductAttributeValue[] $attributeValues
  */
 class ProductVariant extends Model
 {
@@ -96,6 +97,24 @@ class ProductVariant extends Model
     public function priceHistory()
     {
         return $this->hasMany(ProductPriceHistory::class);
+    }
+
+    public function getHasCommercialMovementsAttribute(): bool
+    {
+        if ($this->relationLoaded('purchaseDetails') && $this->purchaseDetails->isNotEmpty()) {
+            return true;
+        }
+
+        if ($this->relationLoaded('saleDetails') && $this->saleDetails->isNotEmpty()) {
+            return true;
+        }
+
+        return $this->purchaseDetails()->exists() || $this->saleDetails()->exists();
+    }
+
+    public function getAttributesLockedAttribute(): bool
+    {
+        return $this->has_commercial_movements;
     }
 
     // =========================================================================

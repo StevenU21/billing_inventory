@@ -15,8 +15,7 @@ class ProductService
         protected ProductAttributeService $attributeService,
         protected ProductVariantService $variantService,
         protected SkuGeneratorInterface $skuGenerator
-    ) {
-    }
+    ) {}
 
     public function createProduct(ProductData $data): Product
     {
@@ -36,6 +35,7 @@ class ProductService
                 ? ProductStatus::Archived
                 : ProductStatus::Available;
             $product->save();
+
             return $product;
         });
     }
@@ -47,12 +47,12 @@ class ProductService
 
     public function sync(ProductData $data, ?Product $product = null): Product
     {
-        return DB::transaction(fn() => $this->executeSync($data, $product));
+        return DB::transaction(fn () => $this->executeSync($data, $product));
     }
 
     protected function executeSync(ProductData $data, ?Product $product = null): Product
     {
-        if (!empty($data->attributes)) {
+        if (! empty($data->attributes)) {
             $this->attributeService->ensureAttributesExist($data->attributes);
         }
 
@@ -65,9 +65,9 @@ class ProductService
             'status' => $data->status,
         ];
 
-        if (!empty($data->code)) {
+        if (! empty($data->code)) {
             $attributes['code'] = $data->code;
-        } elseif ($product && !empty($product->code)) {
+        } elseif ($product && ! empty($product->code)) {
 
         } else {
             $tempSubject = $product ?? new Product(['name' => $data->name]);

@@ -5,6 +5,7 @@
             'archived' => 'Archivado',
             'draft' => 'Borrador',
         ];
+        $defaultVariantImage = asset('img/image04.png');
         $currencyOptions = [
             'NIO' => 'Córdobas (NIO)',
             'USD' => 'Dólares (USD)',
@@ -12,6 +13,11 @@
 
         $selectedStatus = old('status', $product->status?->value ?? 'available');
         $selectedCurrency = old('currency', $product->exists ? ($product->variants->first()->currency ?? 'NIO') : 'NIO');
+        $hasLockedVariants = $product->exists
+            && $product->relationLoaded('variants')
+            && $product->variants->contains(fn ($variant) => $variant->has_commercial_movements);
+
+        $variantsById = $product->exists ? $product->variants->keyBy('id') : collect();
 
         // Prepare initial attributes for JS
         // If old input exists, use it. Otherwise derive from existing variants.
@@ -26,7 +32,15 @@
         // We need to map existing variants to the new JS structure: { id: ..., attributes: { 'Color': 'Red' }, ... }
         $initialVariants = [];
         if (old('variants')) {
-            $initialVariants = old('variants');
+            $initialVariants = collect(old('variants'))->map(function ($variant) use ($variantsById) {
+                $variantId = isset($variant['id']) ? (int) $variant['id'] : null;
+                $lockedVariant = $variantId ? $variantsById->get($variantId) : null;
+
+                $variant['locked'] = $lockedVariant?->has_commercial_movements ?? false;
+                $variant['imageUrl'] = $lockedVariant?->image_url ?? null;
+
+                return $variant;
+            })->all();
         } elseif ($product->exists && $product->variants->count() > 0) {
             foreach ($product->variants as $v) {
                 $attrs = [];
@@ -41,6 +55,8 @@
                     'credit_price' => $v->creditPrice?->getAmount()->toFloat(),
                     'currency' => $selectedCurrency,
                     'skuEditable' => false,
+                    'locked' => $v->has_commercial_movements,
+                    'imageUrl' => $v->image_url ?? $defaultVariantImage,
                     'attributes' => $attrs,
                 ];
             }
@@ -52,6 +68,8 @@
                 'currency' => $selectedCurrency,
                 'sku' => '',
                 'skuEditable' => false,
+                'locked' => false,
+                'imageUrl' => $defaultVariantImage,
             ];
         }
     @endphp
@@ -122,6 +140,7 @@
         attributeInputValues: [],
         bulkPrice: '',
         productCurrency: '{{ $selectedCurrency }}',
+        attributesLocked: {{ $hasLockedVariants ? 'true' : 'false' }},
 
         variants: {{ Illuminate\Support\Js::from($initialVariants) }},
         availableAttributes: {{ Illuminate\Support\Js::from($availableAttributes ?? []) }},
@@ -137,6 +156,8 @@
                 ...variant,
                 currency: variant.currency || this.productCurrency,
                 skuEditable: variant.skuEditable ?? false,
+                locked: variant.locked ?? false,
+                imageUrl: variant.imageUrl || '{{ $defaultVariantImage }}',
             }));
         },
 
@@ -147,11 +168,19 @@
         },
 
         addAttribute() {
+            if (this.attributesLocked) {
+                return;
+            }
+
             this.attributes.push('');
             this.attributeInputValues.push('');
         },
 
         removeAttribute(index) {
+            if (this.attributesLocked) {
+                return;
+            }
+
             // Capture the name needed to be removed from variants
             let nameToRemove = this.attributes[index];
 
@@ -217,7 +246,8 @@
                     skuEditable: false,
                     price: this.bulkPrice || '',
                     credit_price: '',
-                    currency: this.productCurrency
+                    currency: this.productCurrency,
+                    imageUrl: '{{ $defaultVariantImage }}'
                 };
             });
         },
@@ -240,7 +270,9 @@
                 credit_price: '',
                 currency: this.productCurrency,
                 sku: '',
-                skuEditable: false
+                skuEditable: false,
+                locked: false,
+                imageUrl: '{{ $defaultVariantImage }}'
             });
         },
 
@@ -256,7 +288,7 @@
         },
 
         removeVariant(index) {
-            if (this.variants.length > 1) {
+            if (this.variants.length > 1 && !this.variants[index].locked) {
                 this.variants.splice(index, 1);
             }
         }
@@ -265,11 +297,15 @@
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Configuración de Atributos</h3>
-                <button type="button" @click="addAttribute()" x-show="attributes.length < 5"
+                <button type="button" @click="addAttribute()" x-show="attributes.length < 5 && !attributesLocked"
                     class="text-sm bg-purple-100 text-purple-700 px-3 py-1 rounded hover:bg-purple-200 transition">
                     + Agregar Atributo
                 </button>
             </div>
+
+            <p class="text-sm text-amber-600 dark:text-amber-400 mb-4 px-1" x-show="attributesLocked">
+                Los atributos están bloqueados porque al menos una variante ya tiene compras o ventas registradas.
+            </p>
 
             <p class="text-sm text-gray-500 mb-4 px-1" x-show="attributes.length === 0">
                 Agrega atributos (ej. Talla, Color) para generar variantes. Si no agregas ninguno, se creará un producto
@@ -285,7 +321,7 @@
                                 x-text="'Atributo ' + (index + 1)"></label>
                             <x-inputs.select-autocomplete :label="null" name="attributes[]"
                                 model="attributes[index]" suggestions-var="availableAttributes"
-                                placeholder="Ej. Talla, Color" required="true" />
+                                placeholder="Ej. Talla, Color" required="true" :disabled="$hasLockedVariants" />
                         </div>
 
                         <div class="flex-1">
@@ -295,7 +331,7 @@
                                 class="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-700/50 dark:text-gray-300 text-sm h-[38px]">
                         </div>
 
-                        <button type="button" @click="removeAttribute(index)"
+                        <button type="button" @click="removeAttribute(index)" x-show="!attributesLocked"
                             class="mb-1.5 p-2 text-red-500 hover:bg-red-50 rounded-md">
                             <i class="fas fa-trash"></i>
                         </button>
@@ -323,7 +359,7 @@
                         class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Moneda del Producto <span class="text-red-500">*</span>
                     </label>
-                    <select name="currency" id="currency" x-model="productCurrency" @change="syncVariantCurrency()" required
+                    <select id="currency" x-model="productCurrency" @change="syncVariantCurrency()" required
                         class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500">
                         @foreach ($currencyOptions as $key => $label)
                             <option value="{{ $key }}">{{ $label }}</option>
@@ -346,7 +382,7 @@
                     </p>
                 </div>
                 <button type="button" @click="addVariant()"
-                    class="text-sm bg-blue-100 text-blue-600 px-3 py-2 rounded hover:bg-blue-200 transition">
+                    class="inline-flex items-center rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 dark:bg-emerald-500 dark:hover:bg-emerald-400 dark:focus:ring-offset-gray-800">
                     + Agregar Variante
                 </button>
             </div>
@@ -356,6 +392,7 @@
                     <thead class="bg-gray-50 dark:bg-gray-900/40">
                         <tr>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Atributos</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Foto</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">SKU</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Precio</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Precio Crédito</th>
@@ -365,7 +402,7 @@
                     <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
                         <template x-for="(variant, index) in variants" :key="index">
                             <tr class="align-top hover:bg-gray-50/70 dark:hover:bg-gray-700/30">
-                                <td class="px-4 py-4 w-[38%]">
+                                <td class="px-4 py-4 w-[30%]">
                                     <input type="hidden" :name="`variants[${index}][id]`" :value="variant.id">
                                     <input type="hidden" :name="`variants[${index}][currency]`" :value="variant.currency">
 
@@ -374,17 +411,47 @@
                                             <div>
                                                 <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
                                                     x-text="attrName || 'Atributo ' + (attrIdx + 1)"></label>
+                                                <input type="hidden"
+                                                    x-show="variant.locked"
+                                                    :name="`variants[${index}][attributes][${attrName}]`"
+                                                    :value="variant.attributes[attrName] || ''">
                                                 <input type="text"
                                                     :name="`variants[${index}][attributes][${attrName}]`"
                                                     x-model="variant.attributes[attrName]"
-                                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-purple-500 focus:ring-purple-500 text-sm h-9"
-                                                    :placeholder="attrName" required>
+                                                    :disabled="variant.locked"
+                                                    :title="variant.locked ? 'Bloqueado: esta variante ya tiene compras o ventas' : ''"
+                                                    :class="variant.locked
+                                                        ? 'cursor-not-allowed bg-gray-100 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400'
+                                                        : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 focus:border-purple-500 focus:ring-purple-500'"
+                                                    class="w-full rounded-md text-sm h-9"
+                                                    :placeholder="attrName"
+                                                    required>
                                             </div>
                                         </template>
 
                                         <div x-show="attributes.length === 0" class="sm:col-span-2 xl:col-span-3 rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
                                             Producto general
                                         </div>
+                                    </div>
+                                </td>
+
+                                <td class="px-4 py-4 w-[16%]" x-data="{ previewUrl: variant.imageUrl || '{{ $defaultVariantImage }}' }">
+                                    <div class="space-y-2">
+                                        <img :src="previewUrl" alt="Imagen de variante"
+                                            class="h-16 w-16 rounded-md border border-gray-200 dark:border-gray-700 object-cover bg-gray-50 dark:bg-gray-800">
+                                        <input type="file" accept="image/*" :name="`variants[${index}][image]`"
+                                            @change="
+                                                const file = $event.target.files[0];
+                                                if (!file) {
+                                                    previewUrl = variant.imageUrl || '{{ $defaultVariantImage }}';
+                                                    return;
+                                                }
+
+                                                const reader = new FileReader();
+                                                reader.onload = event => previewUrl = event.target.result;
+                                                reader.readAsDataURL(file);
+                                            "
+                                            class="block w-full text-xs text-gray-600 dark:text-gray-300 file:mr-3 file:rounded-md file:border-0 file:bg-purple-50 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-purple-700 hover:file:bg-purple-100 dark:file:bg-gray-700 dark:file:text-gray-200">
                                     </div>
                                 </td>
 
@@ -420,8 +487,14 @@
 
                                 <td class="px-4 py-4 text-right w-[8%]">
                                     <button type="button" @click="removeVariant(index)"
-                                        class="inline-flex items-center justify-center rounded-md border border-red-200 dark:border-red-900/60 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                                        x-show="variants.length > 1">
+                                        :disabled="variants.length <= 1 || variant.locked"
+                                        :title="variant.locked
+                                            ? 'No se puede eliminar: la variante ya tiene compras o ventas'
+                                            : (variants.length <= 1 ? 'Debe existir al menos una variante' : 'Eliminar variante')"
+                                        :class="(variants.length <= 1 || variant.locked)
+                                            ? 'cursor-not-allowed opacity-50 border-gray-300 dark:border-gray-700 text-gray-400 dark:text-gray-500 bg-gray-100 dark:bg-gray-800'
+                                            : 'border-red-200 dark:border-red-900/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'"
+                                        class="inline-flex items-center justify-center rounded-md px-3 py-2 text-xs font-semibold transition">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                 </td>
@@ -438,7 +511,7 @@
     </div>
 
     {{-- Submit --}}
-    <div class="flex justify-end pt-4">
+    <div class="flex justify-end pt-6 pb-8">
         <x-inputs.button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white">
             Guardar Producto
         </x-inputs.button>
