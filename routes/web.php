@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\Admin\AccountPayableController;
+use App\Http\Controllers\Admin\AccountPayablePaymentController;
 use App\Http\Controllers\Admin\AccountReceivableController as AdminAccountReceivableController;
 use App\Http\Controllers\Admin\AccountReceivablePaymentController;
 use App\Http\Controllers\Admin\AppUpdateController;
@@ -19,12 +21,17 @@ use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductVariantController;
 use App\Http\Controllers\Admin\PurchaseController;
 use App\Http\Controllers\Admin\QuotationController;
+use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\SaleController as AdminSaleController;
 use App\Http\Controllers\Admin\SettingController;
 use App\Http\Controllers\Admin\TaxController;
 use App\Http\Controllers\Admin\UnitMeasureController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Cashier\SaleController as CashierSaleController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Exports\PurchaseExportController;
+use App\Http\Controllers\Exports\QuotationExportController;
+use App\Http\Controllers\Exports\SaleExportController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
@@ -45,7 +52,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // 1. DASHBOARD & SYSTEM CORE
     // =========================================================================
 
-    Route::get('/dashboard', [\App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard.index');
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard.index');
 
     // --- Profile & Media ---
     Route::prefix('profile')->name('profile.')->group(function () {
@@ -140,7 +147,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Reports Exports (contextual, no index page)
-    Route::prefix('reports')->name('reports.')->controller(\App\Http\Controllers\Admin\ReportController::class)->group(function () {
+    Route::prefix('reports')->name('reports.')->controller(ReportController::class)->group(function () {
         // Direct exports without filter pages
         Route::any('/sales/export', 'exportSales')->name('sales.export');
         Route::any('/inventory/export', 'exportInventory')->name('inventory.export');
@@ -187,7 +194,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('autocomplete', 'autocomplete')->name('autocomplete');
         Route::patch('{purchase}/receive', 'receive')->name('receive'); // Action to receive/approve purchase
     });
-    Route::resource('purchases/export', \App\Http\Controllers\Exports\PurchaseExportController::class)
+    Route::resource('purchases/export', PurchaseExportController::class)
         ->names('purchases.export')
         ->parameters(['export' => 'purchase'])
         ->only(['index', 'show']);
@@ -205,12 +212,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Resource route for generic access if needed, though custom routes above cover most
     Route::resource('quotations', QuotationController::class)->except(['index', 'create', 'store']);
-    Route::get('admin/quotations/{quotation}/export', [\App\Http\Controllers\Exports\QuotationExportController::class, 'show'])
+    Route::get('admin/quotations/{quotation}/export', [QuotationExportController::class, 'show'])
         ->name('quotations.export.show');
 
     // Sales Export Routes
-    Route::get('admin/sales/{sale}/receipt', [\App\Http\Controllers\Exports\SaleExportController::class, 'receipt'])->name('sales.export.receipt');
-    Route::get('admin/sales/{sale}/export', [\App\Http\Controllers\Exports\SaleExportController::class, 'show'])->name('sales.export.show');
+    Route::get('admin/sales/{sale}/receipt', [SaleExportController::class, 'receipt'])->name('sales.export.receipt');
+    Route::get('admin/sales/{sale}/export', [SaleExportController::class, 'show'])->name('sales.export.show');
 
     // Sales (Admin)
     Route::prefix('admin/sales')->name('admin.sales.')->controller(AdminSaleController::class)->group(function () {
@@ -236,9 +243,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Accounts Payable (Admin)
     Route::prefix('admin/account-payables')->name('admin.account_payables.')->group(function () {
-        Route::get('/', [\App\Http\Controllers\Admin\AccountPayableController::class, 'index'])->name('index');
-        Route::get('/{accountPayable}', [\App\Http\Controllers\Admin\AccountPayableController::class, 'show'])->name('show');
-        Route::post('/{accountPayable}/payments', [\App\Http\Controllers\Admin\AccountPayablePaymentController::class, 'store'])->name('payments.store');
+        Route::get('/', [AccountPayableController::class, 'index'])->name('index');
+        Route::get('/{accountPayable}', [AccountPayableController::class, 'show'])->name('show');
+        Route::post('/{accountPayable}/payments', [AccountPayablePaymentController::class, 'store'])->name('payments.store');
     });
 
     // =========================================================================
@@ -249,6 +256,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
         Route::get('/my-session', 'mySession')->name('my-session');
+        Route::get('/last-closing-balance', 'lastClosingBalance')->name('last-closing-balance');
         Route::get('/{session}', 'show')->name('show');
         Route::get('/{session}/close', 'closeForm')->name('close-form');
         Route::post('/{session}/close', 'close')->name('close');

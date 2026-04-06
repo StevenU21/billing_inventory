@@ -5,6 +5,7 @@ namespace App\Services;
 use App\DTOs\CashMovementData;
 use App\DTOs\CashSessionCloseData;
 use App\DTOs\CashSessionOpenData;
+use App\Enums\CashRegisterMovementType;
 use App\Enums\CashRegisterSessionStatus;
 use App\Exceptions\BusinessLogicException;
 use App\Models\CashRegisterMovement;
@@ -71,7 +72,49 @@ class CashRegisterService
 
             $difference = $data->actualClosingBalance->minus($session->expected_closing_balance);
 
+            if (! $difference->isZero()) {
+                $cashPaymentMethodId = PaymentMethod::query()
+                    ->where('is_cash', true)
+                    ->where('is_active', true)
+                    ->value('id');
+
+                if (! $cashPaymentMethodId) {
+                    throw new BusinessLogicException(
+                        'Debe existir un método de pago en efectivo activo para registrar el ajuste por descuadre.',
+                        'payment_method'
+                    );
+                }
+
+                $adjustmentType = $difference->isPositive()
+                    ? CashRegisterMovementType::AdjustmentIn
+                    : CashRegisterMovementType::AdjustmentOut;
+
+                $adjustmentLabel = $difference->isPositive()
+                    ? 'Ajuste positivo por descuadre'
+                    : 'Ajuste negativo por descuadre';
+
+                $description = $adjustmentLabel;
+
+                if ($data->notes) {
+                    $description .= ". Motivo: {$data->notes}";
+                }
+
+                $session->movements()->create([
+                    'type' => $adjustmentType,
+                    'amount' => $difference->abs(),
+                    'balance_after' => $data->actualClosingBalance,
+                    'user_id' => $data->closedByUserId,
+                    'payment_method_id' => $cashPaymentMethodId,
+                    'reference_type' => null,
+                    'reference_id' => null,
+                    'description' => $description,
+                    'movement_at' => now(),
+                    'currency' => $session->currency,
+                ]);
+            }
+
             $session->update([
+                'expected_closing_balance' => $data->actualClosingBalance,
                 'actual_closing_balance' => $data->actualClosingBalance,
                 'difference' => $difference,
                 'closed_by' => $data->closedByUserId,

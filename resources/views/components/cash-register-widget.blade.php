@@ -33,7 +33,7 @@
 
             if (response.ok) {
                 // Reload page to get fresh data from View Composer
-                window.location.reload(); 
+                window.location.reload();
             } else {
                 alert(data.message || 'Error al abrir caja');
             }
@@ -50,8 +50,8 @@
     <div class="relative">
         <button @click="isOpen = !isOpen" @click.outside="isOpen = false" class="flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all duration-200
                    hover:bg-gray-200 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-purple-500"
-            :class="hasSession 
-                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' 
+            :class="hasSession
+                ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                 : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'">
 
             {{-- Icon --}}
@@ -117,14 +117,14 @@
                     <template x-if="hasSession">
                         <div class="grid grid-cols-2 gap-2">
                             <a href="{{ $showUrl }}"
-                                class="flex flex-col items-center justify-center gap-1 p-2 text-xs text-gray-700 dark:text-gray-300 
+                                class="flex flex-col items-center justify-center gap-1 p-2 text-xs text-gray-700 dark:text-gray-300
                                       bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 rounded-lg transition-colors border border-gray-200 dark:border-gray-600">
                                 <i class="fas fa-eye text-lg mb-1 text-purple-600 dark:text-purple-400"></i>
                                 Ver Detalle
                             </a>
 
                             <a href="{{ $closeUrl }}"
-                                class="flex flex-col items-center justify-center gap-1 p-2 text-xs text-red-700 dark:text-red-400 
+                                class="flex flex-col items-center justify-center gap-1 p-2 text-xs text-red-700 dark:text-red-400
                                            bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors border border-red-200 dark:border-red-900/50">
                                 <i class="fas fa-store-slash text-lg mb-1"></i>
                                 Cerrar Caja
@@ -133,7 +133,7 @@
                     </template>
 
                     <template x-if="!hasSession">
-                        <button @click="showOpenModal = true; isOpen = false" class="w-full flex items-center justify-center gap-2 px-3 py-3 text-sm font-medium text-white 
+                        <button @click="showOpenModal = true; isOpen = false" class="w-full flex items-center justify-center gap-2 px-3 py-3 text-sm font-medium text-white
                                        bg-green-600 hover:bg-green-700 active:bg-green-800
                                        rounded-lg transition-colors shadow-sm">
                             <i class="fas fa-door-open"></i>
@@ -142,7 +142,7 @@
                     </template>
 
                     <div class="pt-2 border-t border-gray-100 dark:border-gray-700">
-                        <a href="{{ $hasSession ? $showUrl : route('admin.cash-register.index') }}" class="flex items-center justify-center gap-2 w-full px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 
+                        <a href="{{ $hasSession ? $showUrl : route('admin.cash-register.index') }}" class="flex items-center justify-center gap-2 w-full px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400
                                    hover:text-gray-700 dark:hover:text-gray-200 transition-colors">
                             <i class="fas fa-history"></i>
                             Ver Historial completo
@@ -171,7 +171,16 @@
                         async useLastClosing() {
                             this.isLoadingLast = true;
                             try {
-                                const response = await fetch('{{ route('api.cash-register.last-closing-balance') }}');
+                                const response = await fetch('{{ route('admin.cash-register.last-closing-balance') }}', {
+                                    headers: {
+                                        'Accept': 'application/json'
+                                    }
+                                });
+
+                                if (!response.ok) {
+                                    throw new Error('No fue posible obtener el saldo anterior.');
+                                }
+
                                 const data = await response.json();
                                 if(data.amount > 0) {
                                     openForm.opening_balance = data.amount;

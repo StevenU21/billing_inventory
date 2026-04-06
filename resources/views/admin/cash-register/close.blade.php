@@ -23,19 +23,19 @@
         <x-form action="{{ route('admin.cash-register.close', $session) }}" method="POST">
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6" x-data="{
                                     denominations: [
-                                        { label: 'C$ 1,000', value: 1000, count: '' },
-                                        { label: 'C$ 500', value: 500, count: '' },
-                                        { label: 'C$ 200', value: 200, count: '' },
-                                        { label: 'C$ 100', value: 100, count: '' },
-                                        { label: 'C$ 50', value: 50, count: '' },
-                                        { label: 'C$ 20', value: 20, count: '' },
-                                        { label: 'C$ 10', value: 10, count: '' },
-                                        { label: 'C$ 5', value: 5, count: '' },
-                                        { label: 'C$ 1', value: 1, count: '' },
-                                        { label: 'C$ 0.50', value: 0.50, count: '' },
-                                        { label: 'C$ 0.25', value: 0.25, count: '' },
+                                        { key: '1000', label: 'C$ 1,000', value: 1000, count: '{{ old('denomination_counts.1000', '') }}' },
+                                        { key: '500', label: 'C$ 500', value: 500, count: '{{ old('denomination_counts.500', '') }}' },
+                                        { key: '200', label: 'C$ 200', value: 200, count: '{{ old('denomination_counts.200', '') }}' },
+                                        { key: '100', label: 'C$ 100', value: 100, count: '{{ old('denomination_counts.100', '') }}' },
+                                        { key: '50', label: 'C$ 50', value: 50, count: '{{ old('denomination_counts.50', '') }}' },
+                                        { key: '20', label: 'C$ 20', value: 20, count: '{{ old('denomination_counts.20', '') }}' },
+                                        { key: '10', label: 'C$ 10', value: 10, count: '{{ old('denomination_counts.10', '') }}' },
+                                        { key: '5', label: 'C$ 5', value: 5, count: '{{ old('denomination_counts.5', '') }}' },
+                                        { key: '1', label: 'C$ 1', value: 1, count: '{{ old('denomination_counts.1', '') }}' },
+                                        { key: '050', label: 'C$ 0.50', value: 0.50, count: '{{ old('denomination_counts.050', '') }}' },
+                                        { key: '025', label: 'C$ 0.25', value: 0.25, count: '{{ old('denomination_counts.025', '') }}' },
                                     ],
-                                    expectedBalance: {{ $session->expected_closing_balance->getMinorAmount()->toInt() / 100 }},
+                                    expectedBalance: {{ old('actual_closing_balance', $session->expected_closing_balance->getMinorAmount()->toInt() / 100) }},
                                     get totalCash() {
                                         const sum = this.denominations.reduce((sum, item) => {
                                             const val = parseFloat(item.value);
@@ -51,10 +51,10 @@
                                         return Math.abs(this.difference) > 0.01;
                                     },
                                     get differenceFormatted() {
-                                        return new Intl.NumberFormat('es-NI', { 
-                                            style: 'currency', 
+                                        return new Intl.NumberFormat('es-NI', {
+                                            style: 'currency',
                                             currency: 'NIO',
-                                            minimumFractionDigits: 2 
+                                            minimumFractionDigits: 2
                                         }).format(Math.abs(this.difference));
                                     },
                                     get differenceType() {
@@ -100,7 +100,7 @@
                                     <i class="fas fa-money-bill-wave text-gray-300 dark:text-gray-600 text-xs"></i>
                                 </div>
                                 <div class="relative rounded-md shadow-sm">
-                                    <input type="number" :id="'denom_' + index" x-model="item.count" min="0" step="1"
+                                    <input type="number" :id="'denom_' + index" :name="'denomination_counts[' + item.key + ']'" x-model="item.count" min="0" step="1"
                                         class="block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:ring-indigo-500 focus:border-indigo-500 text-center font-mono font-bold"
                                         placeholder="0">
                                 </div>

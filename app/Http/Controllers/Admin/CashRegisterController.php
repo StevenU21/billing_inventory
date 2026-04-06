@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\DTOs\CashMovementData;
 use App\DTOs\CashSessionCloseData;
 use App\DTOs\CashSessionOpenData;
+use App\Enums\CashRegisterSessionStatus;
 use App\Exceptions\BusinessLogicException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CashMovementRequest;
@@ -100,7 +101,9 @@ class CashRegisterController extends Controller
                 return response()->json(['message' => $e->getMessage()], 422);
             }
 
-            return back()->withErrors(['session' => $e->getMessage()]);
+            return back()
+                ->withInput()
+                ->withErrors(['session' => $e->getMessage()]);
         }
     }
 
@@ -284,6 +287,30 @@ class CashRegisterController extends Controller
                 'opened_at' => $session->formatted_opened_at,
             ],
             'has_session' => true,
+        ]);
+    }
+
+    /**
+     * Get the last closed balance for the authenticated user.
+     */
+    public function lastClosingBalance(Request $request)
+    {
+        $lastSession = CashRegisterSession::query()
+            ->where('user_id', $request->user()->id)
+            ->where('status', CashRegisterSessionStatus::Closed)
+            ->latest('closed_at')
+            ->first();
+
+        if (! $lastSession || ! $lastSession->actual_closing_balance) {
+            return response()->json([
+                'amount' => '0.00',
+                'formatted' => 'C$ 0.00',
+            ]);
+        }
+
+        return response()->json([
+            'amount' => $lastSession->actual_closing_balance->getAmount()->toScale(2),
+            'formatted' => $lastSession->formatted_actual_closing_balance,
         ]);
     }
 }
