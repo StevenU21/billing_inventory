@@ -18,7 +18,7 @@ class PaymentMethodController extends Controller
         $this->authorize('viewAny', PaymentMethod::class);
 
         $paymentMethods = QueryBuilder::for(PaymentMethod::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::scope('search'),
             ])
             ->defaultSort('-created_at')

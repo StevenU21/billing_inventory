@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
+use Native\Desktop\Facades\Window;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -23,7 +24,7 @@ class NotificationController extends Controller
         $baseQuery = $user->notifications()->latest();
 
         $notifications = QueryBuilder::for($baseQuery)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::callback('status', function ($query, $value) {
                     if ($value === 'unread') {
                         $query->whereNull('read_at');
@@ -72,7 +73,7 @@ class NotificationController extends Controller
         $notifications = $user->notifications()->latest()->limit($limit)->get();
 
         return response()->json([
-            'data' => $notifications->map(fn(DatabaseNotification $notification) => $this->formatNotification($notification)),
+            'data' => $notifications->map(fn (DatabaseNotification $notification) => $this->formatNotification($notification)),
             'meta' => [
                 'unread_count' => $user->unreadNotifications()->count(),
             ],
@@ -126,10 +127,10 @@ class NotificationController extends Controller
 
     private function updateAppBadge($user)
     {
-        if (class_exists(\Native\Desktop\Facades\Window::class)) {
+        if (class_exists(Window::class)) {
             try {
                 $count = $user->unreadNotifications()->count();
-                \Native\Desktop\Facades\Window::setBadgeCount($count);
+                Window::setBadgeCount($count);
             } catch (\Throwable $e) {
                 // Ignorar error si no estamos en entorno NativePHP
             }

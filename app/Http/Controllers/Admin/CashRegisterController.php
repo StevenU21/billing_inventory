@@ -35,7 +35,7 @@ class CashRegisterController extends Controller
         $this->authorize('viewAny', CashRegisterSession::class);
 
         $sessions = QueryBuilder::for(CashRegisterSession::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::exact('user_id'),
                 AllowedFilter::exact('status'),
                 AllowedFilter::callback('from', function ($query, $value) {
@@ -45,7 +45,7 @@ class CashRegisterController extends Controller
                     $query->where('opened_at', '<=', Carbon::parse($value)->endOfDay());
                 }),
             ])
-            ->allowedSorts(['id', 'opened_at', 'closed_at', 'opening_balance'])
+            ->allowedSorts(...['id', 'opened_at', 'closed_at', 'opening_balance'])
             ->defaultSort('-id')
             ->with(['user:id,first_name,last_name', 'openedByUser:id,first_name,last_name', 'closedByUser:id,first_name,last_name'])
             ->withCount('movements')

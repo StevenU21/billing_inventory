@@ -29,7 +29,7 @@ class InventoryController extends Controller
         $this->authorize('viewAny', Inventory::class);
 
         $inventories = QueryBuilder::for(Inventory::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 'id',
                 'product_variant_id',
                 'stock',
@@ -41,7 +41,7 @@ class InventoryController extends Controller
                 AllowedFilter::scope('stock_level'),
                 AllowedFilter::scope('tax_id', 'byTax'),
             ])
-            ->allowedSorts([
+            ->allowedSorts(...[
                 'id',
                 'stock',
                 'min_stock',

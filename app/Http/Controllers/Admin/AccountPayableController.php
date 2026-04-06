@@ -29,14 +29,14 @@ class AccountPayableController extends Controller
         $this->authorize('viewAny', AccountPayable::class);
 
         $accounts = QueryBuilder::for(AccountPayable::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::exact('status'),
                 AllowedFilter::exact('supplier_id'),
                 AllowedFilter::exact('purchase_id'),
                 AllowedFilter::scope('from'), // Asumiendo scope similar a AR
                 AllowedFilter::scope('to'),
             ])
-            ->allowedSorts(['id', 'total_amount', 'balance', 'created_at'])
+            ->allowedSorts(...['id', 'total_amount', 'balance', 'created_at'])
             ->defaultSort('-id')
             ->with(self::RELATIONS)
             ->paginate($request->get('per_page', 10))

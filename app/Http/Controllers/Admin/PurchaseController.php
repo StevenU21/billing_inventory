@@ -8,8 +8,8 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\PurchaseRequest;
 use App\Models\Entity;
 use App\Models\PaymentMethod;
-use App\Models\Purchase;
 use App\Models\ProductVariant;
+use App\Models\Purchase;
 use App\Services\PurchaseService;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
@@ -25,7 +25,7 @@ class PurchaseController extends Controller
         $this->authorize('viewAny', Purchase::class);
 
         $purchases = QueryBuilder::for(Purchase::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::scope('search'),
                 AllowedFilter::exact('entity_id', 'supplier_id'),
                 AllowedFilter::exact('payment_method_id'),
@@ -37,7 +37,7 @@ class PurchaseController extends Controller
                     $query->whereDate('created_at', '<=', $value);
                 }),
             ])
-            ->allowedSorts(['id', 'created_at', 'total', 'reference'])
+            ->allowedSorts(...['id', 'created_at', 'total', 'reference'])
             ->defaultSort('-created_at')
             ->withCount('details')
             ->with(['entity', 'paymentMethod', 'user', 'details.productVariant.product'])
@@ -47,7 +47,7 @@ class PurchaseController extends Controller
         $latestPurchaseId = Purchase::max('id');
 
         $methods = PaymentMethod::pluck('name', 'id');
-        $statuses = collect(PurchaseStatus::cases())->mapWithKeys(fn($status) => [$status->value => $status->label()]);
+        $statuses = collect(PurchaseStatus::cases())->mapWithKeys(fn ($status) => [$status->value => $status->label()]);
 
         return view('admin.purchases.index', compact('purchases', 'methods', 'statuses', 'latestPurchaseId'));
     }
@@ -92,6 +92,7 @@ class PurchaseController extends Controller
         $this->authorize('update', $purchase);
 
         $purchaseService->receivePurchase($purchase);
+
         return redirect()->route('purchases.index')->with('success', 'Compra recibida y stock actualizado correctamente.');
     }
 

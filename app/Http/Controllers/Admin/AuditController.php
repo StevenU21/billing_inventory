@@ -29,13 +29,13 @@ class AuditController extends Controller
                 DB::raw('COUNT(*) as count'),
             )
             ->groupBy('subject_type', 'subject_id')
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::exact('causer_id'),
                 AllowedFilter::exact('event'),
                 AllowedFilter::exact('subject_type'),
                 AllowedFilter::scope('range'),
             ])
-            ->allowedSorts(['id', 'count'])
+            ->allowedSorts(...['id', 'count'])
             ->defaultSort('-id');
 
         [$activities, $allCausers, $modelOptions] = $auditIndexService->build(

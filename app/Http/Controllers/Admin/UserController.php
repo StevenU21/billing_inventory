@@ -25,7 +25,7 @@ class UserController extends Controller
         $this->authorize('viewAny', User::class);
 
         $users = QueryBuilder::for(User::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::scope('search'),
                 AllowedFilter::callback('role', function ($query, $value) {
                     $query->whereHas('roles', function ($q) use ($value) {
@@ -45,7 +45,7 @@ class UserController extends Controller
                     });
                 }),
             ])
-            ->allowedSorts(['id', 'first_name', 'last_name', 'email', 'is_active', 'created_at'])
+            ->allowedSorts(...['id', 'first_name', 'last_name', 'email', 'is_active', 'created_at'])
             ->defaultSort('-id')
             // Eager loading
             ->with(['roles', 'profile'])
@@ -70,7 +70,7 @@ class UserController extends Controller
         return $autocompleteService->response($results, function ($user) {
             return [
                 'id' => $user->id,
-                'text' => $user->full_name
+                'text' => $user->full_name,
             ];
         });
     }
@@ -79,6 +79,7 @@ class UserController extends Controller
     {
         $this->authorize('view', $user);
         $user->load(['roles.permissions', 'profile']);
+
         return view('admin.users.show', compact('user'));
     }
 
@@ -86,7 +87,8 @@ class UserController extends Controller
     {
         $this->authorize('create', User::class);
         $roles = Role::all();
-        $user = new User();
+        $user = new User;
+
         return view('admin.users.create', compact('roles', 'user'));
     }
 
@@ -105,6 +107,7 @@ class UserController extends Controller
         $this->authorize('update', $user);
         $user->load(['roles', 'profile']);
         $roles = Role::all();
+
         return view('admin.users.edit', compact('user', 'roles'));
     }
 
@@ -139,6 +142,7 @@ class UserController extends Controller
             return redirect()->route('users.index')->with('updated', 'Usuario desactivado correctamente');
         } else {
             $this->authorize('update', $user);
+
             return redirect()->route('users.index')->with('deleted', 'Usuario reactivado correctamente.');
         }
     }

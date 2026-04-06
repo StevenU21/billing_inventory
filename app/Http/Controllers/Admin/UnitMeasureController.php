@@ -18,7 +18,7 @@ class UnitMeasureController extends Controller
         $this->authorize('viewAny', UnitMeasure::class);
 
         $unitMeasures = QueryBuilder::for(UnitMeasure::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::scope('search'),
             ])
             ->defaultSort('-created_at')

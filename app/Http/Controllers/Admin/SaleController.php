@@ -2,12 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\ProductVariant;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Http\Request;
-use Carbon\Carbon;
-use Spatie\QueryBuilder\AllowedFilter;
-use Spatie\QueryBuilder\QueryBuilder;
+use App\DTOs\SaleData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\SaleRequest;
 use App\Models\Brand;
@@ -15,9 +10,14 @@ use App\Models\Category;
 use App\Models\Entity;
 use App\Models\Municipality;
 use App\Models\PaymentMethod;
+use App\Models\ProductVariant;
 use App\Models\Sale;
-use App\DTOs\SaleData;
 use App\Services\SaleService;
+use Carbon\Carbon;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
+use Spatie\QueryBuilder\AllowedFilter;
+use Spatie\QueryBuilder\QueryBuilder;
 
 class SaleController extends Controller
 {
@@ -28,7 +28,7 @@ class SaleController extends Controller
         $this->authorize('viewAny', Sale::class);
 
         $sales = QueryBuilder::for(Sale::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::exact('client_id'),
                 AllowedFilter::exact('user_id'),
                 AllowedFilter::exact('payment_method_id'),
@@ -41,14 +41,14 @@ class SaleController extends Controller
                 }),
                 AllowedFilter::scope('search'),
             ])
-            ->allowedSorts(['id', 'total', 'sale_date'])
+            ->allowedSorts(...['id', 'total', 'sale_date'])
             ->defaultSort('-id')
             ->with([
                 'client:id,first_name,last_name',
                 'user',
                 'paymentMethod:id,name',
                 'accountReceivable:id,sale_id,status',
-                'saleDetails.productVariant.product:id,name'
+                'saleDetails.productVariant.product:id,name',
             ])
             ->withCount('saleDetails')
             ->paginate(10)

@@ -4,17 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\DTOs\QuotationData;
 use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Quotation;
-use App\Models\Entity;
+use App\Http\Requests\QuotationRequest;
 use App\Models\Brand;
 use App\Models\Category;
-
+use App\Models\Entity;
 use App\Models\ProductVariant;
+use App\Models\Quotation;
 use App\Services\QuotationService;
-use App\Http\Requests\QuotationRequest;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -27,14 +26,14 @@ class QuotationController extends Controller
         $this->authorize('viewAny', Quotation::class);
 
         $quotations = QueryBuilder::for(Quotation::class)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::scope('search'),
                 AllowedFilter::exact('client_id'),
                 AllowedFilter::exact('status'),
                 AllowedFilter::scope('from'),
                 AllowedFilter::scope('to'),
             ])
-            ->allowedSorts(['id', 'created_at', 'total', 'valid_until', 'status'])
+            ->allowedSorts(...['id', 'created_at', 'total', 'valid_until', 'status'])
             ->defaultSort('-created_at')
             ->with(['client', 'user', 'quotationDetails.productVariant.product'])
             ->withCount('quotationDetails')
@@ -49,17 +48,18 @@ class QuotationController extends Controller
         $this->authorize('create', Quotation::class);
 
         $clients = Entity::where('is_active', true)->where('is_client', true)
-            ->get()->pluck(fn($e) => trim(($e->first_name ?? '') . ' ' . ($e->last_name ?? '')), 'id');
+            ->get()->pluck(fn ($e) => trim(($e->first_name ?? '').' '.($e->last_name ?? '')), 'id');
         $categories = Category::pluck('name', 'id');
         $brands = Brand::pluck('name', 'id');
         $suppliers = Entity::where('is_active', true)->where('is_supplier', true)
-            ->get()->pluck(fn($e) => trim(($e->first_name ?? '') . ' ' . ($e->last_name ?? '')), 'id');
+            ->get()->pluck(fn ($e) => trim(($e->first_name ?? '').' '.($e->last_name ?? '')), 'id');
 
         // Product variants list for items selector (reuse sales approach)
         $productVariants = ProductVariant::with(['product', 'attributeValues'])->get();
 
         // Supported currencies
         $currencies = array_combine(ProductVariant::SUPPORTED_CURRENCIES, ProductVariant::SUPPORTED_CURRENCIES);
+
         return view('admin.quotations.create', compact('clients', 'categories', 'brands', 'suppliers', 'productVariants', 'currencies'));
     }
 
@@ -91,6 +91,7 @@ class QuotationController extends Controller
     {
         $this->authorize('update', $quotation);
         $service->cancelQuotation($quotation);
+
         return back()->with('success', 'Proforma cancelada correctamente.');
     }
 }

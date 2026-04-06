@@ -35,7 +35,7 @@ class EntityController extends Controller
             ->visibleFor($user);
 
         $entities = QueryBuilder::for($baseQuery)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::scope('search'),
                 AllowedFilter::exact('is_active'),
                 AllowedFilter::exact('municipality_id'),
@@ -60,7 +60,7 @@ class EntityController extends Controller
                 }),
             ])
             ->defaultSort('-created_at')
-            ->allowedSorts(['id', 'first_name', 'last_name', 'identity_card', 'ruc', 'email', 'phone', 'municipality_id', 'is_active', 'created_at', 'is_client', 'is_supplier'])
+            ->allowedSorts(...['id', 'first_name', 'last_name', 'identity_card', 'ruc', 'email', 'phone', 'municipality_id', 'is_active', 'created_at', 'is_client', 'is_supplier'])
             ->paginate($perPage)
             ->withQueryString();
 

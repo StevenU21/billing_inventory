@@ -20,7 +20,7 @@ class BrandController extends Controller
 
         $brands = QueryBuilder::for(Brand::class)
             ->with('category')
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::scope('search'),
                 AllowedFilter::exact('category_id'),
             ])
@@ -29,12 +29,14 @@ class BrandController extends Controller
             ->withQueryString();
 
         $categories = Category::pluck('name', 'id');
+
         return view('admin.brands.index', compact('brands', 'categories'));
     }
 
     public function byCategory(Category $category)
     {
         $this->authorize('viewAny', Brand::class);
+
         return response()->json(
             $category->brands()->select('id', 'name')->orderBy('name')->get()
         );
@@ -44,6 +46,7 @@ class BrandController extends Controller
     {
         $this->authorize('create', Brand::class);
         $categories = Category::pluck('name', 'id');
+
         return view('admin.brands.create', compact('categories'));
     }
 
@@ -52,12 +55,14 @@ class BrandController extends Controller
         $data = $request->validated();
         $data['category_id'] = $request->input('category_id');
         Brand::create($data);
+
         return redirect()->route('brands.index')->with('success', 'Marca creada correctamente.');
     }
 
     public function show(Brand $brand)
     {
         $this->authorize('view', $brand);
+
         return view('admin.brands.show', compact('brand'));
     }
 
@@ -65,6 +70,7 @@ class BrandController extends Controller
     {
         $this->authorize('update', $brand);
         $categories = Category::all();
+
         return view('admin.brands.edit', compact('brand', 'categories'));
     }
 
@@ -73,6 +79,7 @@ class BrandController extends Controller
         $data = $request->validated();
         $data['category_id'] = $request->input('category_id');
         $brand->update($data);
+
         return redirect()->route('brands.index')->with('success', 'Marca actualizada correctamente.');
     }
 
@@ -80,6 +87,7 @@ class BrandController extends Controller
     {
         $this->authorize('destroy', $brand);
         $brand->delete();
+
         return redirect()->route('brands.index')->with('success', 'Marca eliminada correctamente.');
     }
 }

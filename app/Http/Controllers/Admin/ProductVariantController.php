@@ -34,7 +34,7 @@ class ProductVariantController extends Controller
         $baseQuery = Inventory::query()
             ->with([
                 'productVariant.product.tax',
-                'productVariant.product.brand.category'
+                'productVariant.product.brand.category',
             ])
             ->whereHas('productVariant.product', function ($q2) {
                 $q2->where('status', 'available');
@@ -51,10 +51,10 @@ class ProductVariantController extends Controller
         }
 
         $query = QueryBuilder::for($baseQuery)
-            ->allowedFilters([
-                AllowedFilter::callback('category_id', fn($q, $v) => $q->whereRelation('productVariant.product.brand', 'category_id', $v)),
-                AllowedFilter::callback('brand_id', fn($q, $v) => $q->whereRelation('productVariant.product', 'brand_id', $v)),
-                AllowedFilter::callback('entity_id', fn($q, $v) => $q->whereRelation('productVariant.product', 'entity_id', $v)),
+            ->allowedFilters(...[
+                AllowedFilter::callback('category_id', fn ($q, $v) => $q->whereRelation('productVariant.product.brand', 'category_id', $v)),
+                AllowedFilter::callback('brand_id', fn ($q, $v) => $q->whereRelation('productVariant.product', 'brand_id', $v)),
+                AllowedFilter::callback('entity_id', fn ($q, $v) => $q->whereRelation('productVariant.product', 'entity_id', $v)),
             ]);
 
         $inventories = $query->latest()->paginate($perPage)->appends($request->query());
@@ -73,7 +73,7 @@ class ProductVariantController extends Controller
             ->with([
                 'product.brand.category',
                 'product.entity',
-                'inventories'
+                'inventories',
             ])
             ->whereHas('product', function ($q2) {
                 $q2->where('status', 'available');
@@ -90,16 +90,15 @@ class ProductVariantController extends Controller
         }
 
         $query = QueryBuilder::for($baseQuery)
-            ->allowedFilters([
+            ->allowedFilters(...[
                 AllowedFilter::exact('product_id'),
-                AllowedFilter::callback('category_id', fn($q, $v) => $q->whereRelation('product.brand', 'category_id', $v)),
-                AllowedFilter::callback('brand_id', fn($q, $v) => $q->whereRelation('product', 'brand_id', $v)),
-                AllowedFilter::callback('entity_id', fn($q, $v) => $q->whereRelation('product', 'entity_id', $v)),
+                AllowedFilter::callback('category_id', fn ($q, $v) => $q->whereRelation('product.brand', 'category_id', $v)),
+                AllowedFilter::callback('brand_id', fn ($q, $v) => $q->whereRelation('product', 'brand_id', $v)),
+                AllowedFilter::callback('entity_id', fn ($q, $v) => $q->whereRelation('product', 'entity_id', $v)),
             ]);
 
         $variants = $query->latest()->paginate($perPage)->appends($request->query());
 
         return ProductVariantAutocompleteResource::collection($variants);
     }
-
 }
