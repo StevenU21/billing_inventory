@@ -42,7 +42,7 @@
         </div>
 
         {{-- Summary Cards --}}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4 mb-6">
             {{-- Current Stock --}}
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
                 <div class="flex items-center gap-3">
@@ -106,6 +106,21 @@
                 </div>
             </div>
 
+            {{-- Gross Profit --}}
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                        <i class="fas fa-chart-line text-emerald-600 dark:text-emerald-400"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Ganancia Bruta</p>
+                        <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400">
+                            {{ $inventory->formatted_gross_profit_total ?? 'C$ 0.00' }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             {{-- Inventory Value --}}
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow p-4 flex items-center justify-center">
                 <div class="text-center">
@@ -123,8 +138,8 @@
         <div x-data="{ showPanel: false }">
             <x-table :resource="$movements">
                 <x-slot:header>
-                    <x-table.header 
-                        title="Movimientos de Inventario" 
+                    <x-table.header
+                        title="Movimientos de Inventario"
                         icon="fa-exchange-alt"
                         :collapsible="true"
                         collapsibleLabel="Ver Info del Producto"
@@ -134,11 +149,13 @@
                 </x-slot:header>
 
                 <x-slot:info>
-                    <x-table.info-panel :cols="4">
+                    <x-table.info-panel :cols="6">
                         <x-table.info-item label="Categoría:" icon="fa-tag" :value="$inventory->productVariant->product->brand->category->name ?? '-'" />
                         <x-table.info-item label="Marca:" icon="fa-copyright" :value="$inventory->productVariant->product->brand->name ?? '-'" />
                         <x-table.info-item label="Stock Mínimo:" icon="fa-exclamation-triangle" font="mono" :value="$inventory->formatted_min_stock" />
+                        <x-table.info-item label="Precio de Compra:" icon="fa-shopping-cart" font="mono" :value="$inventory->formatted_purchase_price" />
                         <x-table.info-item label="Precio de Venta:" icon="fa-dollar-sign" font="mono" :value="$inventory->productVariant->price?->formatTo('es_NI') ?? '-'" />
+                        <x-table.info-item label="Ganancia Unitaria:" icon="fa-chart-line" font="mono" :value="$inventory->formatted_gross_profit_per_unit ?? 'C$ 0.00'" />
                     </x-table.info-panel>
                 </x-slot:info>
 

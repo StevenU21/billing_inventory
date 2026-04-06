@@ -56,6 +56,7 @@
                 <x-table.th>Mínimo</x-table.th>
                 <x-table.th>Compra</x-table.th>
                 <x-table.th>Venta</x-table.th>
+                <x-table.th>Ganancia</x-table.th>
                 <x-table.th class="text-center">Acciones</x-table.th>
             </x-slot>
 
@@ -91,7 +92,7 @@
                                         <span class="text-sm font-semibold text-white">
                                             {{ $inventory->productVariant->attributeValues->pluck('value')->join(' / ') ?: 'Estándar' }}
                                         </span>
-                                        
+
                                         {{-- 2. Product Name (SECONDARY - The Context) --}}
                                         <span class="text-xs font-normal text-gray-500">
                                             {{ $inventory->productVariant->product->name ?? '-' }}
@@ -105,7 +106,7 @@
                         </x-table.td>
 
                         <x-table.td>
-                            {{ (float) $inventory->stock }} 
+                            {{ (float) $inventory->stock }}
                             <span class="text-xs text-gray-500">{{ $inventory->productVariant->product->unitMeasure->symbol ?? '' }}</span>
                         </x-table.td>
                         <x-table.td>
@@ -114,22 +115,27 @@
                         </x-table.td>
                         <x-table.td>{{ $inventory->formatted_purchase_price }}</x-table.td>
                         <x-table.td>{{ $inventory->formatted_sale_price }}</x-table.td>
+                        <x-table.td>
+                            <span class="font-medium text-emerald-400">
+                                {{ $inventory->formatted_gross_profit_per_unit ?? 'C$ 0.00' }}
+                            </span>
+                        </x-table.td>
 
-                        <x-table.dropdown-actions 
+                        <x-table.dropdown-actions
                             :delete-url="route('inventories.destroy', $inventory)"
                             delete-message="¿Seguro de eliminar este inventario?"
                             delete-title="Eliminar"
                             delete-icon="fa-trash">
-                            
-                            <x-table.dropdown-action-item 
-                                :href="route('inventories.show', $inventory)" 
+
+                            <x-table.dropdown-action-item
+                                :href="route('inventories.show', $inventory)"
                                 icon="fa-eye"
                                 title="Ver detalles del inventario">
                                 Ver Detalle
                             </x-table.dropdown-action-item>
 
-                            <x-table.dropdown-action-item 
-                                :href="route('inventories.edit', $inventory)" 
+                            <x-table.dropdown-action-item
+                                :href="route('inventories.edit', $inventory)"
                                 icon="fa-exchange-alt"
                                 title="Realizar movimiento de inventario">
                                 Movimiento
@@ -138,7 +144,7 @@
                     </x-table.tr>
                 @empty
                     <x-table.tr>
-                        <x-table.td colspan="7" class="text-center py-12">
+                        <x-table.td colspan="8" class="text-center py-12">
                             <div class="flex flex-col items-center justify-center text-gray-500">
                                 <i class="fas fa-boxes fa-3x mb-4 text-gray-600"></i>
                                 <p class="text-lg font-medium">No hay inventarios registrados</p>

@@ -2,25 +2,27 @@
 
 namespace App\Models;
 
-
 use App\Traits\HasFormattedMoney;
+use App\Traits\HasFormattedTimestamps;
+use Brick\Math\RoundingMode;
+use Brick\Money\Money;
+use Elegantly\Money\MoneyCast;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\Activitylog\LogOptions;
 use Spatie\Activitylog\Traits\LogsActivity;
-use App\Traits\HasFormattedTimestamps;
-use Elegantly\Money\MoneyCast;
 
 class Inventory extends Model
 {
-    use HasFactory, LogsActivity, HasFormattedTimestamps, HasFormattedMoney;
+    use HasFactory, HasFormattedMoney, HasFormattedTimestamps, LogsActivity;
+
     protected $fillable = [
         'stock',
         'average_cost',
         'low_stock_notified_at',
         'min_stock',
         'product_variant_id',
-        'currency'
+        'currency',
     ];
 
     protected function casts(): array
@@ -56,7 +58,7 @@ class Inventory extends Model
     public function getVariantDisplayAttribute(): string
     {
         $variant = $this->productVariant;
-        if (!$variant) {
+        if (! $variant) {
             return 'N/A';
         }
 
@@ -83,7 +85,7 @@ class Inventory extends Model
     public function getValueInWarehouseAttribute(): float
     {
         $purchasePrice = $this->purchase_price;
-        if ($purchasePrice instanceof \Brick\Money\Money) {
+        if ($purchasePrice instanceof Money) {
             $purchasePrice = (float) $purchasePrice->getMinorAmount()->toInt() / 100;
         }
 
@@ -93,11 +95,38 @@ class Inventory extends Model
     public function getIncomePotentialAttribute(): float
     {
         $salePrice = $this->sale_price;
-        if ($salePrice instanceof \Brick\Money\Money) {
+        if ($salePrice instanceof Money) {
             $salePrice = (float) $salePrice->getMinorAmount()->toInt() / 100;
         }
 
         return (float) $this->stock * (float) ($salePrice ?? 0);
+    }
+
+    public function getGrossProfitPerUnitAttribute(): ?Money
+    {
+        $salePrice = $this->sale_price;
+        $purchasePrice = $this->purchase_price;
+
+        if (! $salePrice || ! $purchasePrice) {
+            return null;
+        }
+
+        if ($salePrice->getCurrency()->getCurrencyCode() !== $purchasePrice->getCurrency()->getCurrencyCode()) {
+            return null;
+        }
+
+        return $salePrice->minus($purchasePrice);
+    }
+
+    public function getGrossProfitTotalAttribute(): ?Money
+    {
+        $grossProfitPerUnit = $this->gross_profit_per_unit;
+
+        if (! $grossProfitPerUnit) {
+            return null;
+        }
+
+        return $grossProfitPerUnit->multipliedBy($this->stock, RoundingMode::HALF_UP);
     }
 
     public function getFormattedStockAttribute(): string
@@ -117,12 +146,12 @@ class Inventory extends Model
 
     public function getFormattedValueInWarehouseAttribute(): string
     {
-        return 'C$ ' . number_format($this->value_in_warehouse, 2);
+        return 'C$ '.number_format($this->value_in_warehouse, 2);
     }
 
     public function getFormattedIncomePotentialAttribute(): string
     {
-        return 'C$ ' . number_format($this->income_potential, 2);
+        return 'C$ '.number_format($this->income_potential, 2);
     }
 
     public function getStockPercentageAttribute(): float
@@ -132,9 +161,9 @@ class Inventory extends Model
         }
 
         $percentage = ($this->stock / ($this->min_stock * 2)) * 100;
+
         return min(100, max(0, $percentage));
     }
-
 
     // =========================================================================
     // RELATIONSHIPS
@@ -238,8 +267,8 @@ class Inventory extends Model
         $variantInfo = '';
         if ($this->productVariant) {
             $attributes = $this->productVariant->attributeValues->pluck('value')->join(' / ');
-            if (!empty($attributes)) {
-                $variantInfo = ' (' . $attributes . ')';
+            if (! empty($attributes)) {
+                $variantInfo = ' ('.$attributes.')';
             }
         }
 
