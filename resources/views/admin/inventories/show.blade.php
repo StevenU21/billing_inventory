@@ -176,7 +176,7 @@
                                 {{ $movement->formatted_created_at }}
                             </x-table.td-text>
                             <x-table.td-text>
-                                {{ $movement->user->name ?? '-' }}
+                                {{ $movement->user?->short_name ?? '-' }}
                             </x-table.td-text>
                             <x-table.td-badge :color="$movement->movement_type_badge" :text="$movement->movement_type" />
                             <x-table.td>

@@ -105,7 +105,7 @@
                         <i class="fas fa-dollar-sign text-emerald-600 dark:text-emerald-400"></i>
                     </div>
                     <div>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">Valor Inventario</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Valor Inventario (P.Venta)</p>
                         <div class="text-lg font-bold text-emerald-600 dark:text-emerald-400 font-mono">
                             <x-money :amount="$totalInventoryValue" />
                         </div>
@@ -155,7 +155,7 @@
                         <x-table.th>{{ $label }}</x-table.th>
                     @endforeach
                     <x-table.th class="text-right">Existencia</x-table.th>
-                    <x-table.th class="text-right">Precio Unit.</x-table.th>
+                    <x-table.th class="text-right">Precio Unit. (Venta)</x-table.th>
                     <x-table.th class="text-right">Valor Total</x-table.th>
                 </x-slot:thead>
 
