@@ -77,7 +77,7 @@ class CashRegisterService
                 'closed_by' => $data->closedByUserId,
                 'closed_at' => now(),
                 'status' => CashRegisterSessionStatus::Closed,
-                'notes' => $data->closingNotes,
+                'notes' => $data->notes,
             ]);
 
             return $session->fresh();

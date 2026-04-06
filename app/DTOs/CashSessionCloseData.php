@@ -10,7 +10,7 @@ readonly class CashSessionCloseData
         public int $sessionId,
         public Money $actualClosingBalance,
         public int $closedByUserId,
-        public ?string $closingNotes = null,
+        public ?string $notes = null,
     ) {}
 
     public static function fromRequest(array $validatedData, int $sessionId): self
@@ -21,7 +21,7 @@ readonly class CashSessionCloseData
             sessionId: $sessionId,
             actualClosingBalance: Money::of((string) $validatedData['actual_closing_balance'], $currency),
             closedByUserId: (int) $validatedData['closed_by_user_id'],
-            closingNotes: isset($validatedData['closing_notes']) ? trim((string) $validatedData['closing_notes']) : null,
+            notes: isset($validatedData['notes']) ? trim((string) $validatedData['notes']) : null,
         );
     }
 }

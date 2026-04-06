@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\NotesRequiredWhenCashDoesNotMatch;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CloseCashSessionRequest extends FormRequest
@@ -18,7 +19,16 @@ class CloseCashSessionRequest extends FormRequest
         return [
             'actual_closing_balance' => ['required', 'numeric', 'min:0', 'max:99999999.99'],
             'currency' => ['nullable', 'string', 'in:NIO,USD'],
-            'closing_notes' => ['nullable', 'string', 'max:1000'],
+            'notes' => [
+                'nullable',
+                'string',
+                'max:1000',
+                new NotesRequiredWhenCashDoesNotMatch(
+                    $this->route('session'),
+                    $this->input('actual_closing_balance'),
+                    $this->input('currency')
+                ),
+            ],
         ];
     }
 
