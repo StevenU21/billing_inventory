@@ -85,6 +85,7 @@
             <div class="flex items-end pb-2">
                 <div class="flex items-center gap-2">
                     <input type="checkbox" id="is_credit" name="is_credit" value="1" {{ old('is_credit', $isEdit ? $sale->is_credit : false) ? 'checked' : '' }}
+                        x-model="isCredit" @change="refreshAllItemPrices()"
                         class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500 dark:focus:ring-purple-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
                     <label for="is_credit" class="text-sm font-medium text-gray-700 dark:text-gray-300">¿Es
                         crédito?</label>
@@ -148,6 +149,7 @@
                                     @foreach($productVariants as $variant)
                                         <option value="{{ $variant->id }}"
                                             data-price="{{ $variant->price?->getAmount()->toFloat() ?? 0 }}"
+                                            data-credit-price="{{ $variant->credit_price?->getAmount()->toFloat() ?? '' }}"
                                             data-tax="{{ $variant->product->tax?->percentage ?? 0 }}">
                                             {{ $variant->product->name }}
                                             @if($variant->attributeValues->isNotEmpty())
@@ -238,9 +240,10 @@
         function saleForm() {
             return {
                 items: @json($initialItems),
+                isCredit: @json((bool) old('is_credit', $isEdit ? $sale->is_credit : false)),
 
                 init() {
-                    console.log('Sale form initialized', this.items);
+                    this.refreshAllItemPrices();
                 },
 
                 addItem() {
@@ -262,12 +265,19 @@
                     const selectedOption = selectElement?.options[selectElement.selectedIndex];
 
                     if (selectedOption && selectedOption.value) {
-                        const price = parseFloat(selectedOption.dataset.price) || 0;
+                        const cashPrice = parseFloat(selectedOption.dataset.price);
+                        const creditPrice = parseFloat(selectedOption.dataset.creditPrice);
+                        const hasCreditPrice = ! Number.isNaN(creditPrice);
+                        const price = this.isCredit && hasCreditPrice ? creditPrice : (Number.isNaN(cashPrice) ? 0 : cashPrice);
                         const tax = parseFloat(selectedOption.dataset.tax) || 0;
 
                         this.items[index].unit_price = price;
                         this.items[index].tax_percentage = tax;
                     }
+                },
+
+                refreshAllItemPrices() {
+                    this.items.forEach((_, index) => this.updateItemPrice(index));
                 },
 
                 calculateLineTotal(item) {

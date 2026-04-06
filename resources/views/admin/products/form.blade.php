@@ -18,7 +18,7 @@
             && $product->variants->contains(fn ($variant) => $variant->has_commercial_movements);
 
         $variantsById = $product->exists ? $product->variants->keyBy('id') : collect();
-    
+
         // Prepare initial attributes for JS
         // If old input exists, use it. Otherwise derive from existing variants.
         $initialAttributes = old('attributes', []);
@@ -52,7 +52,7 @@
                     'id' => $v->id,
                     'sku' => $v->sku,
                     'price' => $v->price?->getAmount()->toFloat(),
-                    'credit_price' => $v->creditPrice?->getAmount()->toFloat(),
+                    'credit_price' => $v->credit_price?->getAmount()->toFloat(),
                     'currency' => $selectedCurrency,
                     'skuEditable' => false,
                     'locked' => $v->has_commercial_movements,
@@ -394,7 +394,7 @@
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Atributos</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Foto</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">SKU</th>
-                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Precio</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Precio Venta</th>
                             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Precio Crédito</th>
                             <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Acciones</th>
                         </tr>
