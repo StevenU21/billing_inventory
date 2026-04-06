@@ -11,6 +11,7 @@
         ];
 
         $selectedStatus = old('status', $product->status?->value ?? 'available');
+        $selectedCurrency = old('currency', $product->exists ? ($product->variants->first()->currency ?? 'NIO') : 'NIO');
 
         // Prepare initial attributes for JS
         // If old input exists, use it. Otherwise derive from existing variants.
@@ -38,7 +39,8 @@
                     'sku' => $v->sku,
                     'price' => $v->price?->getAmount()->toFloat(),
                     'credit_price' => $v->creditPrice?->getAmount()->toFloat(),
-                    'currency' => $v->currency,
+                    'currency' => $selectedCurrency,
+                    'skuEditable' => false,
                     'attributes' => $attrs,
                 ];
             }
@@ -47,8 +49,9 @@
             $initialVariants[] = [
                 'attributes' => [],
                 'price' => '',
-                'currency' => 'NIO',
+                'currency' => $selectedCurrency,
                 'sku' => '',
+                'skuEditable' => false,
             ];
         }
     @endphp
@@ -118,6 +121,7 @@
         // Stores input values for generation: ['S, M, L', 'Red, Blue']
         attributeInputValues: [],
         bulkPrice: '',
+        productCurrency: '{{ $selectedCurrency }}',
 
         variants: {{ Illuminate\Support\Js::from($initialVariants) }},
         availableAttributes: {{ Illuminate\Support\Js::from($availableAttributes ?? []) }},
@@ -125,6 +129,15 @@
         init() {
             // Initialize input values to match attributes length
             this.syncInputs();
+            this.normalizeVariants();
+        },
+
+        normalizeVariants() {
+            this.variants = this.variants.map(variant => ({
+                ...variant,
+                currency: variant.currency || this.productCurrency,
+                skuEditable: variant.skuEditable ?? false,
+            }));
         },
 
         syncInputs() {
@@ -201,9 +214,10 @@
                     id: null,
                     attributes: attrs,
                     sku: '',
+                    skuEditable: false,
                     price: this.bulkPrice || '',
                     credit_price: '',
-                    currency: 'NIO'
+                    currency: this.productCurrency
                 };
             });
         },
@@ -224,9 +238,21 @@
                 attributes: emptyAttrs,
                 price: this.bulkPrice || '',
                 credit_price: '',
-                currency: 'NIO',
-                sku: ''
+                currency: this.productCurrency,
+                sku: '',
+                skuEditable: false
             });
+        },
+
+        syncVariantCurrency() {
+            this.variants = this.variants.map(variant => ({
+                ...variant,
+                currency: this.productCurrency,
+            }));
+        },
+
+        toggleSkuEditable(index) {
+            this.variants[index].skuEditable = ! this.variants[index].skuEditable;
         },
 
         removeVariant(index) {
@@ -290,102 +316,123 @@
                     <i class="fas fa-magic mr-2"></i> Generar Combinaciones
                 </button>
             </div>
+
+            <div class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label for="currency"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Moneda del Producto <span class="text-red-500">*</span>
+                    </label>
+                    <select name="currency" id="currency" x-model="productCurrency" @change="syncVariantCurrency()" required
+                        class="w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:ring-purple-500 focus:border-purple-500">
+                        @foreach ($currencyOptions as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Esta moneda se aplicará a todas las variantes.
+                    </p>
+                </div>
+            </div>
         </div>
 
         {{-- 2. Variants Table/Grid --}}
         <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-sm">
-            <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Lista de Variantes</h3>
+            <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
+                <div>
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">Lista de Variantes</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Filas compactas para evitar scroll innecesario.
+                    </p>
+                </div>
                 <button type="button" @click="addVariant()"
-                    class="text-sm bg-blue-100 text-blue-600 px-3 py-1 rounded hover:bg-blue-200">
+                    class="text-sm bg-blue-100 text-blue-600 px-3 py-2 rounded hover:bg-blue-200 transition">
                     + Agregar Variante
                 </button>
             </div>
 
-            <div class="space-y-4">
-                <template x-for="(variant, index) in variants" :key="index">
-                    <div
-                        class="border border-gray-800/50 dark:border-gray-700/30 rounded-md p-4 relative bg-gray-50 dark:bg-gray-700">
-                        <button type="button" @click="removeVariant(index)"
-                            class="absolute top-2 right-2 text-red-500 hover:text-red-700" x-show="variants.length > 1">
-                            <i class="fas fa-trash"></i>
-                        </button>
+            <div class="overflow-x-auto border border-gray-200 dark:border-gray-700 rounded-lg">
+                <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                    <thead class="bg-gray-50 dark:bg-gray-900/40">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Atributos</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">SKU</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Precio</th>
+                            <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Precio Crédito</th>
+                            <th class="px-4 py-3 text-right text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800">
+                        <template x-for="(variant, index) in variants" :key="index">
+                            <tr class="align-top hover:bg-gray-50/70 dark:hover:bg-gray-700/30">
+                                <td class="px-4 py-4 w-[38%]">
+                                    <input type="hidden" :name="`variants[${index}][id]`" :value="variant.id">
+                                    <input type="hidden" :name="`variants[${index}][currency]`" :value="variant.currency">
 
-                        {{-- Hidden ID --}}
-                        <input type="hidden" :name="`variants[${index}][id]`" :value="variant.id">
+                                    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                        <template x-for="(attrName, attrIdx) in attributes" :key="attrIdx">
+                                            <div>
+                                                <label class="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400"
+                                                    x-text="attrName || 'Atributo ' + (attrIdx + 1)"></label>
+                                                <input type="text"
+                                                    :name="`variants[${index}][attributes][${attrName}]`"
+                                                    x-model="variant.attributes[attrName]"
+                                                    class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-purple-500 focus:ring-purple-500 text-sm h-9"
+                                                    :placeholder="attrName" required>
+                                            </div>
+                                        </template>
 
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                                        <div x-show="attributes.length === 0" class="sm:col-span-2 xl:col-span-3 rounded-md border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/40 px-3 py-4 text-sm text-gray-500 dark:text-gray-400">
+                                            Producto general
+                                        </div>
+                                    </div>
+                                </td>
 
-                            {{-- Dynamic Attribute Inputs --}}
-                            <template x-for="(attrName, attrIdx) in attributes" :key="attrIdx">
-                                <div class="md:col-span-2">
-                                    <label class="block text-xs font-medium text-gray-500 mb-1"
-                                        x-text="attrName || 'Atributo '+(attrIdx+1)"></label>
-                                    <input type="text" {{-- Name format: variants[0][attributes][Color] --}}
-                                        :name="`variants[${index}][attributes][${attrName}]`"
-                                        x-model="variant.attributes[attrName]"
-                                        class="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-700/50 dark:text-white"
-                                        :placeholder="attrName" required>
-                                </div>
-                            </template>
+                                <td class="px-4 py-4 w-[18%]">
+                                    <div class="flex items-start gap-2">
+                                        <div class="min-w-0 flex-1">
+                                            <input type="text" :name="`variants[${index}][sku]`" x-model="variant.sku"
+                                                :readonly="!variant.skuEditable"
+                                                :class="variant.skuEditable ? 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100' : 'bg-gray-100 dark:bg-gray-900/50 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'"
+                                                class="w-full rounded-md shadow-sm focus:border-purple-500 focus:ring-purple-500 text-sm h-9"
+                                                :placeholder="variant.skuEditable ? 'SKU manual' : 'SKU automático'">
+                                            <p class="mt-1 text-[11px] text-gray-500 dark:text-gray-400" x-text="variant.skuEditable ? 'Edición manual activa' : 'Auto hasta pulsar Editar'"></p>
+                                        </div>
+                                        <button type="button" @click="toggleSkuEditable(index)"
+                                            class="mt-0.5 shrink-0 rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+                                            <span x-text="variant.skuEditable ? 'Bloquear' : 'Editar'"></span>
+                                        </button>
+                                    </div>
+                                </td>
 
-                            {{-- Fallback for no attributes --}}
-                            <div class="md:col-span-3" x-show="attributes.length === 0">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Nombre / Referencia</label>
-                                {{-- For simple products, we might still send empty attributes or a default one?
-                                     Actually, Request expects variants.*.attributes. It can be empty.
-                                     But we usually want a label.
-                                     Let's just not send attributes here, so it is a simple product.
-                                     But wait, Request validation might expect something.
-                                     Actually, existing logic used option1 for name if no options.
-                                     We can't easily replicate that if we enforce attributes.
-                                     Let's assume simple products have NO attributes.
-                                --}}
-                                <p class="text-sm text-gray-400 py-2">Producto General</p>
-                            </div>
+                                <td class="px-4 py-4 w-[14%]">
+                                    <input type="number" step="0.01" :name="`variants[${index}][price]`"
+                                        x-model="variant.price" required
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-purple-500 focus:ring-purple-500 text-sm h-9">
+                                </td>
 
-                            {{-- SKU --}}
-                            <div class="md:col-span-3">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">SKU (Auto)</label>
-                                <input type="text" :name="`variants[${index}][sku]`" x-model="variant.sku"
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-700/50 dark:text-white"
-                                    placeholder="Dejar vacío para auto">
-                            </div>
+                                <td class="px-4 py-4 w-[14%]">
+                                    <input type="number" step="0.01" :name="`variants[${index}][credit_price]`"
+                                        x-model="variant.credit_price"
+                                        class="w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:border-purple-500 focus:ring-purple-500 text-sm h-9"
+                                        placeholder="Opcional">
+                                </td>
 
-                            {{-- Price --}}
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Precio *</label>
-                                <input type="number" step="0.01" :name="`variants[${index}][price]`"
-                                    x-model="variant.price" required
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-700/50 dark:text-white">
-                            </div>
-
-                            {{-- Credit Price --}}
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Precio Crédito</label>
-                                <input type="number" step="0.01" :name="`variants[${index}][credit_price]`"
-                                    x-model="variant.credit_price"
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-700/50 dark:text-white"
-                                    placeholder="(Opcional)">
-                            </div>
-
-                            {{-- Currency --}}
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-medium text-gray-500 mb-1">Moneda *</label>
-                                <select :name="`variants[${index}][currency]`" x-model="variant.currency" required
-                                    class="w-full rounded-md border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500 dark:bg-gray-800 dark:border-gray-700/50 dark:text-white">
-                                    @foreach ($currencyOptions as $key => $label)
-                                        <option value="{{ $key }}">{{ $label }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </template>
+                                <td class="px-4 py-4 text-right w-[8%]">
+                                    <button type="button" @click="removeVariant(index)"
+                                        class="inline-flex items-center justify-center rounded-md border border-red-200 dark:border-red-900/60 px-3 py-2 text-xs font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition"
+                                        x-show="variants.length > 1">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </template>
+                    </tbody>
+                </table>
             </div>
 
             <p class="text-xs text-gray-400 mt-4">
-                * Los campos de SKU se generarán automáticamente si se dejan vacíos.
+                * El SKU se genera automáticamente hasta que lo desbloquees.
             </p>
         </div>
     </div>

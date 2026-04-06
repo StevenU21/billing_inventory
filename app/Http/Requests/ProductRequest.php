@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use App\Rules\UniqueVariantSku;
 use Elegantly\Money\Rules\ValidMoney;
+use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -36,17 +37,17 @@ class ProductRequest extends FormRequest
         $product = $this->route('product');
 
         if ($product instanceof Product) {
-            if (!$this->has('id')) {
+            if (! $this->has('id')) {
                 $this->merge(['id' => $product->id]);
             }
 
-            if (!$this->has('attributes')) {
+            if (! $this->has('attributes')) {
                 $this->merge(['attributes' => []]);
             }
 
             $fields = ['name', 'brand_id', 'tax_id', 'unit_measure_id', 'status', 'code'];
             foreach ($fields as $field) {
-                if (!$this->has($field)) {
+                if (! $this->has($field)) {
                     $value = $product->{$field};
                     if ($value instanceof \BackedEnum) {
                         $value = $value->value;
@@ -60,7 +61,7 @@ class ProductRequest extends FormRequest
     /**
      * Get the validation rules that apply to the request.
      *
-     * @return array<string, \Illuminate\Contracts\Validation\ValidationRule|array<mixed>|string>
+     * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
     {
@@ -74,6 +75,7 @@ class ProductRequest extends FormRequest
             'code' => ['nullable', 'string', 'max:50', Rule::unique('products')->ignore($productId)],
             'description' => ['nullable', 'string', 'max:255'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'currency' => ['required', 'string', 'size:3', 'in:NIO,USD'],
 
             'brand_id' => ['required', 'integer', 'exists:brands,id'],
             'tax_id' => ['required', 'integer', 'exists:taxes,id'],
@@ -92,7 +94,7 @@ class ProductRequest extends FormRequest
             'variants.*.barcode' => ['nullable', 'string', 'max:50'],
             'variants.*.price' => ['required', new ValidMoney(min: 0.01)],
             'variants.*.credit_price' => ['nullable', new ValidMoney(min: 0.01)],
-            'variants.*.currency' => ['required', 'string', 'size:3', 'in:' . $currencies],
+            'variants.*.currency' => ['nullable', 'string', 'size:3', 'in:'.$currencies],
         ];
     }
 }

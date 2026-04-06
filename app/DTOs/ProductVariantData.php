@@ -17,12 +17,11 @@ readonly class ProductVariantData
         public ?UploadedFile $image,
 
         public array $attributes = [],
-    ) {
-    }
+    ) {}
 
-    public static function fromArray(array $data): self
+    public static function fromArray(array $data, ?string $defaultCurrency = null): self
     {
-        $currency = $data['currency'] ?? 'NIO';
+        $currency = $data['currency'] ?? $defaultCurrency ?? 'NIO';
 
         return new self(
             id: isset($data['id']) ? (int) $data['id'] : null,
