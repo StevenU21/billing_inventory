@@ -18,7 +18,7 @@
             && $product->variants->contains(fn ($variant) => $variant->has_commercial_movements);
 
         $variantsById = $product->exists ? $product->variants->keyBy('id') : collect();
-
+    
         // Prepare initial attributes for JS
         // If old input exists, use it. Otherwise derive from existing variants.
         $initialAttributes = old('attributes', []);

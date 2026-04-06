@@ -24,12 +24,12 @@
                     Proveedor: {{ $purchase->entity?->short_name ?? '-' }} • Fecha: {{ $purchase->formatted_created_at }}
                 </p>
             </div>
-            
+
             <div class="flex items-center gap-3">
                 <x-link href="{{ route('purchases.index') }}" variant="secondary" icon="fas fa-arrow-left" >
                     Volver
                 </x-link>
-                
+
                 <x-link href="{{ route('purchases.export.show', $purchase) }}" variant="secondary" icon="fa-file-pdf" data-no-loader="true">
                     Ver PDF
                 </x-link>
@@ -92,8 +92,8 @@
         <div x-data="{ showPanel: false }">
             <x-table>
                 <x-slot:header>
-                    <x-table.header 
-                        title="Detalles de la Compra" 
+                    <x-table.header
+                        title="Detalles de la Compra"
                         icon="fa-shopping-cart"
                         :collapsible="true"
                         collapsibleLabel="Ver Info de la Compra"
@@ -125,12 +125,7 @@
                         @php
                             $variant = $detail->productVariant;
                             $product = $variant?->product;
-                            $options = collect([
-                                $variant?->option1,
-                                $variant?->option2,
-                                $variant?->option3,
-                            ])->filter()->join(' / ');
-                            $variantLabel = $options ?: ($variant?->name ?? 'Simple');
+                            $variantLabel = $detail->variant_display;
                         @endphp
                         <x-table.tr>
                             <x-table.td>

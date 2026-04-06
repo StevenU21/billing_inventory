@@ -75,8 +75,8 @@ class AccountReceivablePaymentService
     {
         if ($paymentAmount->isGreaterThan($currentBalance)) {
             throw new BusinessLogicException(__('El monto del pago (:amount) excede el saldo pendiente (:balance).', [
-                'amount' => $paymentAmount->formatTo('es_NI'),
-                'balance' => $currentBalance->formatTo('es_NI'),
+                'amount' => $paymentAmount->formatToLocale('es_NI'),
+                'balance' => $currentBalance->formatToLocale('es_NI'),
             ]));
         }
     }

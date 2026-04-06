@@ -82,6 +82,7 @@ class PurchaseController extends Controller
             'user',
             'paymentMethod',
             'details.productVariant.product',
+            'details.productVariant.attributeValues.attribute',
         ]);
 
         return view('admin.purchases.show', compact('purchase'));
