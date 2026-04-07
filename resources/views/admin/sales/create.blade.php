@@ -2,7 +2,7 @@
 @section('title', 'Nueva Venta')
 
 @section('content')
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8 mb-8">
+    <div class="container mx-auto px-4 sm:px-6 lg:px-8 pb-2">
         <x-breadcrumb :items="[
             ['label' => 'Módulo de Ventas', 'href' => '#', 'icon' => 'fa-home'],
             ['label' => 'Ventas', 'href' => route('admin.sales.index')],
