@@ -12,7 +12,7 @@ class DashboardController extends Controller
 
     public function index()
     {
-        $data = $this->dashboardService->getBasicInfo();
+        $data = $this->dashboardService->getBusinessKPIs();
 
         return view('dashboard', $data);
     }

@@ -54,11 +54,11 @@ class DatabaseSeeder extends Seeder
         ]);
 
         // Core Business Data
-        $this->call([
-            AttributeSeeder::class,
-            ProductSeeder::class,
-            PurchaseSeeder::class,
-            SaleSeeder::class,
-        ]);
+        // $this->call([
+        //     AttributeSeeder::class,
+        //     ProductSeeder::class,
+        //     PurchaseSeeder::class,
+        //     SaleSeeder::class,
+        // ]);
     }
 }

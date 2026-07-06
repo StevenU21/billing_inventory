@@ -109,7 +109,7 @@ class SaleService
             foreach ($lockedSale->saleDetails as $detail) {
                 $inventory = $this->inventoryService->getInventoryForVariant($detail->product_variant_id);
 
-                $originalCost = $detail->unit_cost ? Money::ofMinor($detail->unit_cost, $detail->currency) : null;
+                $originalCost = $detail->unit_cost;
                 $reentryCost = $originalCost ?? ($inventory?->average_cost ?? Money::zero($detail->currency));
 
                 $movementData = new InventoryMovementData(
@@ -244,11 +244,13 @@ class SaleService
             ->whereIn('id', $missingVariantIds->all())
             ->get();
 
+        $optionsMap = $options->all();
+
         foreach ($variants as $variant) {
             $attributes = $variant->attributeValues->pluck('value')->filter()->values()->all();
             $variantLabel = count($attributes) > 0 ? ' ('.implode(' / ', $attributes).')' : '';
 
-            $options->put((int) $variant->id, [
+            $optionsMap[(int) $variant->id] = [
                 'id' => (int) $variant->id,
                 'inventory_id' => null,
                 'label' => ($variant->product?->name ?? 'Producto').$variantLabel,
@@ -263,10 +265,10 @@ class SaleService
                 'unit_price' => $variant->price?->getAmount()->toFloat() ?? 0,
                 'credit_price' => $variant->credit_price?->getAmount()->toFloat(),
                 'image_url' => $variant->image_url,
-            ]);
+            ];
         }
 
-        return $options->values()->all();
+        return array_values($optionsMap);
     }
 
     /**
@@ -412,7 +414,7 @@ class SaleService
             'tax_amount' => $d['tax_amount_total'],
             'currency' => $d['currency'],
             'product_variant_id' => $d['variant']->id,
-            'unit_cost' => $d['unit_cost']->getMinorAmount()->toInt(),
+            'unit_cost' => $d['unit_cost'],
         ]);
     }
 }
