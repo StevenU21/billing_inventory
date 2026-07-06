@@ -49,16 +49,16 @@ class DatabaseSeeder extends Seeder
 
             CategorySeeder::class,
             BrandSeeder::class,
-            // CompanySeeder::class,
+            CompanySeeder::class,
             EntitySeeder::class,
         ]);
 
         // Core Business Data
         $this->call([
-            // AttributeSeeder::class,
-            // ProductSeeder::class,
-            // PurchaseSeeder::class,
-            // SaleSeeder::class,
+            AttributeSeeder::class,
+            ProductSeeder::class,
+            PurchaseSeeder::class,
+            SaleSeeder::class,
         ]);
     }
 }

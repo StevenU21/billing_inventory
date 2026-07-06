@@ -38,14 +38,9 @@ class NativeAppServiceProvider implements ProvidesPhpIni
         return [
             'memory_limit' => '1024M',
             'max_execution_time' => '0',
-            'opcache.enable' => '1',
-            'opcache.enable_cli' => '1',
-            'opcache.validate_timestamps' => '0',
-            'opcache.revalidate_freq' => '0',
-            'opcache.memory_consumption' => '256',
-            'opcache.max_accelerated_files' => '20000',
-            'opcache.jit_buffer_size' => '100M',
-            'opcache.jit' => 'tracing',
+            'opcache.enable' => '0',
+            'opcache.enable_cli' => '0',
+            // OPcache and JIT are disabled because they cause Access Violation (0xC0000005) crashes in PHP 8.4 CLI on Windows.
         ];
     }
 }

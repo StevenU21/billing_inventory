@@ -4,13 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\DTOs\SaleData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\SaleProductSearchRequest;
 use App\Http\Requests\SaleRequest;
 use App\Models\Brand;
 use App\Models\Category;
 use App\Models\Entity;
 use App\Models\Municipality;
 use App\Models\PaymentMethod;
-use App\Models\ProductVariant;
 use App\Models\Sale;
 use App\Services\SaleService;
 use Carbon\Carbon;
@@ -60,7 +60,7 @@ class SaleController extends Controller
         return view('admin.sales.index', compact('sales', 'methods', 'latestSaleId'));
     }
 
-    public function create()
+    public function create(SaleService $saleService)
     {
         $this->authorize('create', Sale::class);
 
@@ -72,9 +72,33 @@ class SaleController extends Controller
 
         $clientEntities = Entity::where('is_client', true)->get();
 
-        $productVariants = ProductVariant::with(['product', 'attributeValues'])->get();
+        $initialVariantIds = collect(session()->getOldInput('items', []))
+            ->pluck('product_variant_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
 
-        return view('admin.sales.create', compact('clientEntities', 'methods', 'categories', 'brands', 'suppliers', 'municipalities', 'productVariants'));
+        $initialProductOptions = $saleService->getInitialProductOptions($initialVariantIds);
+        $productSearchUrl = route('admin.sales.products.search');
+
+        return view('admin.sales.create', compact('clientEntities', 'methods', 'categories', 'brands', 'suppliers', 'municipalities', 'initialProductOptions', 'productSearchUrl'));
+    }
+
+    public function productSearch(SaleProductSearchRequest $request, SaleService $saleService)
+    {
+        $this->authorize('create', Sale::class);
+
+        $result = $saleService->searchProductsForSale([
+            'q' => (string) $request->validated('q', ''),
+            'category_id' => $request->validated('filter.category_id'),
+            'brand_id' => $request->validated('filter.brand_id'),
+            'per_page' => (int) $request->validated('per_page', 12),
+            'page' => (int) $request->validated('page', 1),
+        ]);
+
+        return response()->json($result);
     }
 
     public function store(SaleRequest $request, SaleService $saleService)

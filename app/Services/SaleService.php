@@ -10,6 +10,7 @@ use App\Enums\SaleStatus;
 use App\Events\SaleCancelled;
 use App\Events\SaleCreated;
 use App\Exceptions\BusinessLogicException;
+use App\Models\Inventory;
 use App\Models\ProductVariant;
 use App\Models\Sale;
 use App\Models\SaleDetail;
@@ -137,6 +138,164 @@ class SaleService
 
             SaleCancelled::dispatch($lockedSale);
         });
+    }
+
+    /**
+     * @param  array{q?:string, category_id?:int|null, brand_id?:int|null, per_page?:int, page?:int}  $filters
+     * @return array{data:array<int, array<string, mixed>>, meta:array<string, int>}
+     */
+    public function searchProductsForSale(array $filters): array
+    {
+        $term = trim((string) ($filters['q'] ?? ''));
+        $categoryId = isset($filters['category_id']) ? (int) $filters['category_id'] : null;
+        $brandId = isset($filters['brand_id']) ? (int) $filters['brand_id'] : null;
+        $perPage = max(1, min(24, (int) ($filters['per_page'] ?? 12)));
+
+        $query = Inventory::query()
+            ->with([
+                'productVariant.product.tax',
+                'productVariant.product.brand.category',
+                'productVariant.attributeValues',
+            ])
+            ->where('stock', '>', 0)
+            ->whereHas('productVariant.product', function ($productQuery) {
+                $productQuery->where('status', 'available');
+            });
+
+        if ($term !== '') {
+            $query->where(function ($searchQuery) use ($term) {
+                $like = "%{$term}%";
+
+                $searchQuery->whereRelation('productVariant.product', 'name', 'like', $like)
+                    ->orWhereRelation('productVariant.product', 'code', 'like', $like)
+                    ->orWhereRelation('productVariant', 'sku', 'like', $like)
+                    ->orWhereRelation('productVariant', 'barcode', 'like', $like);
+            });
+        }
+
+        if ($categoryId) {
+            $query->whereRelation('productVariant.product.brand', 'category_id', $categoryId);
+        }
+
+        if ($brandId) {
+            $query->whereRelation('productVariant.product', 'brand_id', $brandId);
+        }
+
+        $paginator = $query
+            ->orderByDesc('id')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        return [
+            'data' => $paginator->getCollection()->map(fn (Inventory $inventory) => $this->mapInventoryToProductOption($inventory))->values()->all(),
+            'meta' => [
+                'current_page' => $paginator->currentPage(),
+                'last_page' => $paginator->lastPage(),
+                'per_page' => $paginator->perPage(),
+                'total' => $paginator->total(),
+            ],
+        ];
+    }
+
+    /**
+     * @param  array<int, int|string>  $variantIds
+     * @return array<int, array<string, mixed>>
+     */
+    public function getInitialProductOptions(array $variantIds): array
+    {
+        $ids = collect($variantIds)
+            ->map(fn ($id) => (int) $id)
+            ->filter(fn (int $id) => $id > 0)
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $inventories = Inventory::query()
+            ->with([
+                'productVariant.product.tax',
+                'productVariant.product.brand.category',
+                'productVariant.attributeValues',
+            ])
+            ->whereIn('product_variant_id', $ids->all())
+            ->orderByDesc('id')
+            ->get()
+            ->unique('product_variant_id')
+            ->values();
+
+        $options = $inventories->map(function (Inventory $inventory) {
+            return $this->mapInventoryToProductOption($inventory);
+        })->keyBy('id');
+
+        if ($options->count() === $ids->count()) {
+            return $options->values()->all();
+        }
+
+        $missingVariantIds = $ids->filter(fn (int $id) => ! $options->has($id))->values();
+
+        $variants = ProductVariant::query()
+            ->with([
+                'product.tax',
+                'product.brand.category',
+                'attributeValues',
+            ])
+            ->whereIn('id', $missingVariantIds->all())
+            ->get();
+
+        foreach ($variants as $variant) {
+            $attributes = $variant->attributeValues->pluck('value')->filter()->values()->all();
+            $variantLabel = count($attributes) > 0 ? ' ('.implode(' / ', $attributes).')' : '';
+
+            $options->put((int) $variant->id, [
+                'id' => (int) $variant->id,
+                'inventory_id' => null,
+                'label' => ($variant->product?->name ?? 'Producto').$variantLabel,
+                'product_name' => $variant->product?->name,
+                'sku' => $variant->sku,
+                'code' => $variant->product?->code,
+                'barcode' => $variant->barcode,
+                'category_name' => $variant->product?->brand?->category?->name,
+                'brand_name' => $variant->product?->brand?->name,
+                'stock' => 0,
+                'tax_percentage' => (float) ($variant->product?->tax?->percentage ?? 0),
+                'unit_price' => $variant->price?->getAmount()->toFloat() ?? 0,
+                'credit_price' => $variant->credit_price?->getAmount()->toFloat(),
+                'image_url' => $variant->image_url,
+            ]);
+        }
+
+        return $options->values()->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function mapInventoryToProductOption(Inventory $inventory): array
+    {
+        $variant = $inventory->productVariant;
+        $product = $variant?->product;
+
+        $attributes = $variant?->attributeValues?->pluck('value')->filter()->values()->all() ?? [];
+        $variantLabel = count($attributes) > 0 ? ' ('.implode(' / ', $attributes).')' : '';
+
+        return [
+            'id' => (int) ($variant?->id ?? 0),
+            'inventory_id' => (int) $inventory->id,
+            'label' => ($product?->name ?? 'Producto').$variantLabel,
+            'product_name' => $product?->name,
+            'sku' => $variant?->sku,
+            'code' => $product?->code,
+            'barcode' => $variant?->barcode,
+            'category_name' => $product?->brand?->category?->name,
+            'brand_name' => $product?->brand?->name,
+            'stock' => (float) ($inventory->stock ?? 0),
+            'tax_percentage' => (float) ($product?->tax?->percentage ?? 0),
+            'unit_price' => $inventory->sale_price?->getAmount()->toFloat() ?? 0,
+            'credit_price' => $variant?->credit_price?->getAmount()->toFloat(),
+            'image_url' => $variant?->image_url,
+        ];
     }
 
     // --- Helpers Privados ---

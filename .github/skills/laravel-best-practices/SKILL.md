@@ -3,7 +3,7 @@ name: laravel-best-practices
 description: "Apply this skill whenever writing, reviewing, or refactoring Laravel PHP code. This includes creating or modifying controllers, models, migrations, form requests, policies, jobs, scheduled commands, service classes, and Eloquent queries. Triggers for N+1 and query performance issues, caching strategies, authorization and security patterns, validation, error handling, queue and job configuration, route definitions, and architectural decisions. Also use for Laravel code reviews and refactoring existing Laravel code to follow best practices. Covers any task involving Laravel backend PHP code patterns."
 license: MIT
 metadata:
-    author: laravel
+  author: laravel
 ---
 
 # Laravel Best Practices
@@ -94,7 +94,7 @@ Check sibling files, related controllers, models, or tests for established patte
 ### 9. Queue & Job Patterns → `rules/queue-jobs.md`
 
 - `retry_after` must exceed job `timeout`; use exponential backoff `[1, 5, 10]`
-- `ShouldBeUnique` to prevent duplicates; `WithoutOverlapping::untilProcessing()` for concurrency
+- `ShouldBeUnique` to prevent duplicates; `ShouldBeUniqueUntilProcessing` for early lock release
 - Always implement `failed()`; with `retryUntil()`, set `$tries = 0`
 - `RateLimited` middleware for external API calls; `Bus::batch()` for related jobs
 - Horizon for complex multi-queue scenarios

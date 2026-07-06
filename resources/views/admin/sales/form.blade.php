@@ -9,20 +9,13 @@
 		];
 	})->values();
 
-	$variantOptions = $productVariants->map(function ($variant) {
-		$attributes = $variant->attributeValues->pluck('value')->filter()->values()->all();
-		$productName = $variant->product?->name ?? 'Producto';
-		$variantLabel = count($attributes) > 0 ? ' (' . implode(' / ', $attributes) . ')' : '';
+	$categoryOptions = collect($categories)
+		->map(fn ($name, $id) => ['value' => (string) $id, 'label' => $name])
+		->values();
 
-		return [
-			'id' => $variant->id,
-			'label' => $productName . $variantLabel,
-			'sku' => $variant->sku,
-			'unit_price' => $variant->price?->getAmount()->toFloat() ?? 0,
-			'credit_price' => $variant->credit_price?->getAmount()->toFloat() ?? null,
-			'tax_percentage' => (float) ($variant->product?->tax?->percentage ?? 0),
-		];
-	})->values();
+	$brandOptions = collect($brands)
+		->map(fn ($name, $id) => ['value' => (string) $id, 'label' => $name])
+		->values();
 
 	$initialItems = [];
 	if (old('items')) {
@@ -45,12 +38,15 @@
 <div
 	x-data="saleInvoiceForm({
 		clients: @js($clientOptions),
-		variants: @js($variantOptions),
+		initialVariants: @js($initialProductOptions),
 		initialItems: @js($initialItems),
 		selectedClient: @js((string) old('client_id', '')),
 		selectedCurrency: @js(old('currency', 'NIO')),
 		selectedPaymentMethod: @js((string) old('payment_method_id', $defaultPaymentMethodId)),
-		initialIsCredit: @js((bool) old('is_credit', false))
+		initialIsCredit: @js((bool) old('is_credit', false)),
+		categoryOptions: @js($categoryOptions),
+		brandOptions: @js($brandOptions),
+		productSearchUrl: @js($productSearchUrl)
 	})"
 	class="flex h-[calc(100dvh-11.5rem)] sm:h-[calc(100dvh-12.5rem)] lg:h-[calc(100dvh-14.5rem)] flex-col gap-3 overflow-hidden [@media(max-height:860px)]:overflow-y-auto"
 >

@@ -224,6 +224,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', 'index')->name('index');
         Route::get('/create', 'create')->name('create');
         Route::post('/', 'store')->name('store');
+        Route::get('/products/search', 'productSearch')->name('products.search');
 
         Route::get('/brands-by-category', 'brandsByCategory')->name('brandsByCategory');
 
