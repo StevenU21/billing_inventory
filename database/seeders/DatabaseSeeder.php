@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
             'email' => 'cashier@example.com',
             'password' => bcrypt('password'),
         ]);
+        
         Profile::factory()->create([
             'user_id' => $cashierUser->id,
         ]);
